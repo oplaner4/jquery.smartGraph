@@ -1,0 +1,32 @@
+{
+  "name": "smartGraph",
+  "title": "jQuery smartGraph",
+  "description": "Free, easy to use, javascript library for generating beautiful vector graphs with many customizations.",
+  "keywords": [
+    "graph",
+    "canvas",
+    "function",
+    "point",
+    "cartesian"
+  ],
+  "version": "1.0.0",
+  "author": {
+    "name": "Ondřej Planer",
+    "url": "https://github.com/oplaner4/"
+  },
+  "maintainers": [
+  ],
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "http://www.opensource.org/licenses/mit-license.php"
+    }
+  ],
+  "bugs": "https://github.com/oplaner4/jquery.smartGraph/issues",
+  "homepage": "https://github.com/oplaner4/jquery.smartGraph/",
+  "docs": "https://github.com/oplaner4/jquery.smartGraph/blob/master/README.md",
+  "download": "https://github.com/oplaner4/jquery.smartGraph/archive/master.zip",
+  "dependencies": {
+    "jquery": ">=2.0.0"
+  }
+}

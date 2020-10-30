@@ -1,0 +1,471 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+    
+    <script src="../src/js/jquery.smartGraph.js"></script>
+    <link rel="stylesheet" href="../src/css/jquery.smartGraph.css">
+
+    <title>Jquery.smartGraph examples</title>
+</head>
+<body class="m-4">
+    <div class="container-fluid">
+        <h2 class="mb-3">Jquery.smartGraph examples</h2>
+        <div class="row mb-4">
+            <div class="col-lg-6 px-lg-4">
+                <h4 class="text-center">1. Default options</h4>
+                <div class="smart-graph smart-graph-1">
+                    <canvas width="1600" height="900"></canvas>
+                </div>
+            </div>
+            <div class="col-lg-6 px-lg-4">
+                <h4 class="text-center">2. Modified axises</h4>
+                <div class="smart-graph smart-graph-2">
+                    <canvas width="1600" height="900"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="row mb-4">
+            <div class="col-lg-6 px-lg-4">
+                <h4 class="text-center">3. Moved, changed ratio, dark theme</h4>
+                <div class="smart-graph smart-graph-3">
+                    <canvas width="1600" height="900"></canvas>
+                </div>
+            </div>
+            <div class="col-lg-6 px-lg-4">
+                <h4 class="text-center">4. With data</h4>
+                <div class="smart-graph smart-graph-4">
+                    <canvas width="1600" height="900"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="row mb-4">
+            <div class="col-lg-6 px-lg-4">
+                <h4 class="text-center">5. Modified points, drawing onclick</h4>
+                <div class="smart-graph smart-graph-5">
+                    <canvas width="1600" height="900"></canvas>
+                </div>
+            </div>
+            <div class="col-lg-6 px-lg-4">
+                <h4 class="text-center">6. Modified functions</h4>
+                <div class="smart-graph smart-graph-6">
+                    <canvas width="1600" height="900"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(function () {
+            $('.smart-graph-1').smartGraph({
+                color: '#343a40',
+                axises: {
+                    thickness: null, /* inherits from lines.thickness */
+                    color: null, /* inherits from lines.color */
+                    ticks: {
+                        step: 1,
+                        size: 8,
+                        thickness: null, /* inherits from axises.thickness */
+                        color: null, /* inherits from lines.color */
+                        titles: {
+                            font: '10px Calibri',
+                            padding: 10,
+                            color: null, /* inherits from texts.color */
+                            render: function (value, axisCreatorManager) {
+                                return axisCreatorManager.getOptimallyRoundedTick(value);
+                            }
+                        }
+                    },
+                    labels: {
+                        font: '20px Calibri',
+                        color: null  /* inherits from texts.color */
+                    },
+                    x: {
+                        color: null, /* inherits from axises.color */
+                        label: {
+                            caption: 'x',
+                            color: null,  /* inherits from axises.labels.color */
+                            padding: 20
+                        },
+                        ticks: {
+                            step: null, /* inherits from axises.ticks.step */
+                            color: null, /* inherits from axises.color */
+                            titles: {
+                                color: null, /* inherits from axises.ticks..titles.color */
+                                render: null /* inherits from axises.ticks.titles.render */
+                            }
+                        }
+                    },
+                    y: {
+                        color: null, /* inherits from axises.color */
+                        label: {
+                            caption: 'y',
+                            color: null, /* inherits from axises.labels.color */
+                            padding: 20
+                        },
+                        ticks: {
+                            step: null, /* inherits from axises.ticks.step */
+                            color: null, /* inherits from axises.color */
+                            titles: {
+                                color: null, /* inherits from axises.ticks.titles.color */
+                                render: null /* inherits from axises.ticks.titles.render */
+                            }
+                        }
+                    }
+                },
+                data: {
+                    points: [],
+                    functions: []
+                },
+                point: {
+                    size: 10,
+                    thickness: 2,
+                    color: null, /* inherits from color */
+                    hintlines: {
+                        show: false,
+                        color: null, /* inherits from lines.color */
+                        thickness: null, /* inherits from lines.thickness */
+                        dash: [2, 2]
+                    },
+                    label: {
+                        font: '13px Calibri',
+                        color: null, /* inherits from texts.color */
+                        padding: 7,
+                        render: function (x, y) {
+                            return '(' + x.roundDigits(2) + ', ' + y.roundDigits(2) + ')';
+                        }
+                    }
+                },
+                'function': {
+                    step: null, /* inherits from axises.x.ticks.step */
+                    modifier: function () {
+                        return null;
+                    },
+                    connectlines: {
+                        show: true,
+                        color: null, /* inherits from lines.color */
+                        thickness: null, /* inherits from lines.thickness */
+                        dash: []
+                    },
+                    points: {
+                        color: null, /* inherits from point.color */
+                        size: null, /* inherits from point.size */
+                        thickness: null, /* inherits from point.thickness */
+                        hintlines: {
+                            show: null, /* inherits from point.hintlines.show */
+                            color: null, /* inherits from point.hintlines.color */
+                            thickness: null, /* inherits from point.hintlines.thickness */
+                            dash: null /* inherits from point.hintlines.dash */
+                        },
+                        labels: {
+                            font: null, /* inherits from point.label.font */
+                            color: null, /* inherits from point.label.color */
+                            padding: null, /* inherits from point.label.padding */
+                            render: function () {
+                                return '';
+                            }
+                        }
+                    }
+                },
+                lines: {
+                    color: null, /* inherits from color */
+                    thickness: 1
+                },
+                texts: {
+                    color: null /* inherits from color */
+                },
+                move: {
+                    x: 0,
+                    y: 0
+                },
+                responsive: {
+                    enable: true,
+                    ratio: 16 / 9
+                }
+            });
+
+            $('.smart-graph-2').smartGraph({
+                axises: {
+                    thickness: 3,
+                    color: 'black',
+                    ticks: {
+                        step: 2,
+                        size: 7,
+                        thickness: 2,
+                        color: 'blue',
+                        titles: {
+                            font: '.6rem Arial',
+                            padding: 15,
+                            color: 'red'
+                        }
+                    },
+                    labels: {
+                        font: '1.3rem Arial',
+                        color: 'red'
+                    },
+                    x: {
+                        color: 'orange',
+                        label: {
+                            caption: 's (m)',
+                            padding: -30
+                        },
+                        ticks: {
+                            titles: {
+                                color: 'green'
+                            }
+                        }
+                    },
+                    y: {
+                        color: 'yellow',
+                        label: {
+                            caption: 't (s)',
+                            color: 'blue',
+                            padding: -50
+                        },
+                        ticks: {
+                            step: .8,
+                            color: 'green',
+                            titles: {
+                                render: function (value) {
+                                    return value.toFixed(1);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            $('.smart-graph-3').addClass('bg-dark').smartGraph({
+                move: {
+                    x: 40,
+                    y: -100
+                },
+                responsive: {
+                    ratio: 4/3
+                },
+                color: 'white',
+                lines: {
+                    thickness: 2,
+                    color: 'yellow'
+                },
+                texts: {
+                    color: 'orange'
+                }
+            });
+
+            $('.smart-graph-4').smartGraph({
+                data: {
+                    points: [
+                        {
+                            x: 2,
+                            y: 1
+                        }
+                    ],
+                    functions: [
+                        {
+                            relation: x => x + 2,
+                            interval: [-4, 4]
+                        },
+                        {
+                            relation: x => Math.pow(x, 2) - 1,
+                            step: .1,
+                            interval: [-4, 4],
+                            points: {
+                                size: 0
+                            }
+                        }
+                    ]
+                },
+            }).smartGraph('addData', {
+                points: [
+                    {
+                        x: -2,
+                        y: -2
+                    }
+                ],
+                functions: [
+                    {
+                        relation: x => Math.sin(x),
+                        step: .1,
+                        interval: [-4, 4],
+                        points: {
+                            size: 0
+                        }
+                    }
+                ]
+            });
+
+
+            $('.smart-graph-5').attr('title', 'click to draw a point').on('smartGraph.click', function (_e, _settingsManager, x, y) {
+                $(this).smartGraph('addData', {
+                    points: [
+                        {
+                            x: x,
+                            y: y,
+                            color: 'red',
+                            size: 9,
+                            thickness: 2,
+                            hintlines: {
+                                color: 'darkred',
+                                dash: [3, 4]
+                            },
+                            label: {
+                                color: 'red',
+                                render: function (x, y) {
+                                    return x.toFixed(2) + ', ' + y.toFixed(2);
+                                }
+                            }
+                        }
+                    ]
+                });
+            }).smartGraph({
+                data: {
+                    points: [
+                        {
+                            x: 2,
+                            y: 1
+                        }
+                    ]
+                },
+                point: {
+                    size: 7,
+                    thickness: 1,
+                    color: 'blue',
+                    hintlines: {
+                        show: true,
+                        color: 'darkblue'
+                    },
+                    label: {
+                        padding: 5,
+                        render: function () {
+                            return '';
+                        }
+                    }
+                }
+            }).smartGraph('addData', {
+                points: [
+                    {
+                        x: -2,
+                        y: -2
+                    },
+                    {
+                        x: -5,
+                        y: 2
+                    },
+                    {
+                        x: 4,
+                        y: -3
+                    }
+                ]
+            });
+
+            $('.smart-graph-6').smartGraph({
+                axises: {
+                    x: {
+                        ticks: {
+                            step: Math.PI / 2
+                        }
+                    }
+                },
+                data: {
+                    functions: [
+                        {
+                            relation: x => x + 2,
+                            interval: [-4, 4],
+                            step: 1,
+                            connectlines: {
+                                color: 'green'
+                            },
+                            points: {
+                                size: 10,
+                                color: 'darkgreen',
+                                hintlines: {
+                                    show: true
+                                },
+                                labels: {
+                                    render: function (x, y) {
+                                        return '[' + x + ', ' + y + ']';
+                                    }
+                                }
+                            },
+                        },
+                        {
+                            relation: x => Math.pow(x, 2) - 2,
+                            step: .005,
+                            interval: [-4, 4],
+                            points: {
+                                size: 0
+                            },
+                            connectlines: {
+                                dash: [1, 1],
+                                color: 'red'
+                            },
+                            modifier: function (_x, y) {
+                                if (y < 0) {
+                                    return {
+                                        connectlines: {
+                                            color: 'orange'
+                                        }
+                                    }
+                                }
+                                return {
+                                    connectlines: {
+                                        color: 'red'
+                                    }
+                                };
+                            },
+                        }
+                    ]
+                },
+                'function': {
+                    step: .1,
+                    connectlines: {
+                        color: 'blue',
+                        thickness: 2
+                    },
+                    points: {
+                        size: 0, /* hide */
+                        hintlines: {
+                            color: 'green',
+                            thickness: 1,
+                            dash: [4, 4]
+                        },
+                        labels: {
+                            font: '9px Calibri',
+                            color: 'green',
+                            padding: 12
+                        }
+                    }
+                }
+            }).smartGraph('addData', {
+                functions: [
+                    {
+                        relation: x => Math.tan(x),
+                        interval: [-4, 4],
+                        modifier: function (_x, y, _prevX, prevY) {
+                            /* hide incorrect connectlines */
+                            if (y < 0 && prevY > 0) {
+                                return {
+                                    connectlines: {
+                                        show: false
+                                    }
+                                }
+                            }
+                            return {
+                                connectlines: {
+                                    show: true
+                                }
+                            };
+                        }
+                    }
+                ]
+            });
+
+        });
+    </script>
+</body>
+</html>
