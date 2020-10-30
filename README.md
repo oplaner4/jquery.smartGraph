@@ -460,7 +460,7 @@ data: {
 You can use this callback to control the function course.
 
 ```javascript
-function: {
+'function': {
     modifier: function (x, y, prevX, prevY, settingsManager) {
         /* positive values only */
         if (y < 0) {
