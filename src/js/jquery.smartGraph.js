@@ -1,17 +1,19 @@
 /**
-* 
+* jquery.smartGraph 1.0.0
 * https://github.com/oplaner4/jquery.smartGraph
 * by Ondrej Planer, oplaner4@gmail.com
-* 
-* This library requires jQuery.js 1.0.0
+*
+*
+* This library requires jQuery.js
 * See the documentation before using this library please
 * jquery.smartSticky.js may be freely distributed under the MIT license.
 *
 * Copyright 2020, Ondrej Planer
- * 
- * 
+ *
+ *
  * PRESERVE THIS PLEASE
 */
+
 
 (function (factory) {
     "use strict";
