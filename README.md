@@ -444,6 +444,26 @@ data: {
             points: {
                 size: 0 /* hide points */
             }
+        },
+        {
+            relation: x => Math.tan(x),
+            interval: [-4, 4],
+            modifier: function (_x, y, _prevX, prevY) {
+                /* hide incorrect connectlines */
+                if (y < 0 && prevY > 0) {
+                    return {
+                        connectlines: {
+                            show: false
+                        }
+                    }
+                }
+
+                return {
+                    connectlines: {
+                        show: true
+                    }
+                };
+            }
         }
      ]
 }
@@ -474,7 +494,7 @@ You can use this callback to control the function course.
             }
         }
 
-        /* and */
+        /* or */
 
         return null; /* default, don't modify */
     }
