@@ -448,7 +448,7 @@
                         interval: [-4, 4],
                         modifier: function (_x, y, _prevX, prevY) {
                             /* hide incorrect connectlines */
-                            if (y < 0 && prevY > 0) {
+                            if (y < 0 && prevY !== null && prevY > 0) {
                                 return {
                                     connectlines: {
                                         show: false

@@ -450,7 +450,7 @@ data: {
             interval: [-4, 4],
             modifier: function (_x, y, _prevX, prevY) {
                 /* hide incorrect connectlines */
-                if (y < 0 && prevY > 0) {
+                if (y < 0 && prevY !== null && prevY > 0) {
                     return {
                         connectlines: {
                             show: false
@@ -478,6 +478,8 @@ data: {
 - Returns: `Object`
 
 You can use this callback to control the function course.
+
+Note: Arguments `prevX` (the previous x from an interval) and `prevY` (the previous y) are `null` while rendering the first point. 
 
 ```javascript
 'function': {
