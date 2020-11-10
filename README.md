@@ -479,7 +479,7 @@ data: {
 
 You can use this callback to control the function course.
 
-Note: Arguments `prevX` (the previous x from an interval) and `prevY` (the previous y) are `null` while rendering the first point. 
+Arguments `prevX` (the previous x from an interval) and `prevY` (the previous y) are `null` while rendering the first point. 
 
 ```javascript
 'function': {
