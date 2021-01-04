@@ -267,11 +267,15 @@
                     ],
                     functions: [
                         {
-                            relation: x => x + 2,
+                            relation: function (x) {
+                                return x + 2;
+                            }, /* or using lambda expression x => x + 2 in newer browsers */
                             interval: [-4, 4]
                         },
                         {
-                            relation: x => Math.pow(x, 2) - 1,
+                            relation: function (x) {
+                                return Math.pow(x, 2) - 1;
+                            }, /* or using lambda expression x => Math.pow(x, 2) - 1 in newer browsers */
                             step: .1,
                             interval: [-4, 4],
                             points: {
@@ -289,7 +293,9 @@
                 ],
                 functions: [
                     {
-                        relation: x => Math.sin(x),
+                        relation: function (x) {
+                            return Math.sin(x);
+                        }, /* or using lambda expression x => Math.sin(x) in newer browsers */
                         step: .1,
                         interval: [-4, 4],
                         points: {
@@ -374,7 +380,9 @@
                 data: {
                     functions: [
                         {
-                            relation: x => x + 2,
+                            relation: function (x) {
+                                return x + 2;
+                            }, /* or using lambda expression x => x + 2 in newer browsers */
                             interval: [-4, 4],
                             step: 1,
                             connectlines: {
@@ -394,7 +402,9 @@
                             },
                         },
                         {
-                            relation: x => Math.pow(x, 2) - 2,
+                            relation: function (x) {
+                                return Math.pow(x, 2) - 2;
+                            }, /* or using lambda expression x => Math.pow(x, 2) - 2 in newer browsers */
                             step: .005,
                             interval: [-4, 4],
                             points: {
@@ -444,7 +454,9 @@
             }).smartGraph('addData', {
                 functions: [
                     {
-                        relation: x => Math.tan(x),
+                        relation: function (x) {
+                            return Math.tan(x);
+                        }, /* or using lambda expression x => Math.tan(x) in newer browsers */
                         interval: [-4, 4],
                         modifier: function (_x, y, _prevX, prevY) {
                             /* hide incorrect connectlines */

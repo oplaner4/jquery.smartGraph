@@ -1,5 +1,5 @@
 /**
-* jquery.smartGraph 1.0.0
+* jquery.smartGraph 1.1.0
 * https://github.com/oplaner4/jquery.smartGraph
 * by Ondrej Planer, oplaner4@gmail.com
 *
@@ -82,20 +82,38 @@
             }
         }).trigger('resize');
 
-        self.reconstruct().getSettingsManager().getElement().addClass($.fn.smartGraph.classes.root).on('mousemove', function (e) {
+        self.reconstruct().getSettingsManager().getElement()
+        .addClass($.fn.smartGraph.classes.root)
+        .on('mousemove touchmove', function (e) {
             var offset = self.getSettingsManager().getElement().offset();
+            var rect = e;
+
+            if (e.touches) {
+                rect = e.touches[0];
+            }
 
             if (self._mouseMovingState) {
                 self.setOptions({
                     move: {
-                        x: self.getSettingsManager().getOptions().move.x - self.getMousePosition().getX() - offset.left + e.clientX,
-                        y: self.getSettingsManager().getOptions().move.y + self.getMousePosition().getY() + offset.top - e.clientY - $(window).scrollTop(),
+                        x: self.getSettingsManager().getOptions().move.x - self.getMousePosition().getX() - offset.left + rect.clientX,
+                        y: self.getSettingsManager().getOptions().move.y + self.getMousePosition().getY() + offset.top - rect.clientY - $(window).scrollTop(),
                     }
                 });
             }
 
-            self.setMousePosition(e.clientX - offset.left, e.clientY - offset.top + $(window).scrollTop());
-        }).on('mousedown', function (e) {
+            self.setMousePosition(rect.clientX - offset.left, rect.clientY - offset.top + $(window).scrollTop());
+        }).on('mouseup touchend', function () {
+            clearTimeout(self._movingStateTimeout);
+            $(this).removeClass($.fn.smartGraph.classes.moving);
+            self._mouseMovingState = false;
+        }).on('mouseover mouseout touchstart touchend', function () {
+            self._mouseMovingState = false;
+            self.setMousePosition(self.getSettingsManager().getCenter());
+        }).on('mouseover touchstart', function () {
+            self._activeState = true;
+        }).on('mouseout touchend', function () {
+            self._activeState = false;
+        }).on('mousedown touchstart', function (e) {
             e.preventDefault();
             self._movingStateTimeout = setTimeout(function () {
                 self._mouseMovingState = true;
@@ -107,21 +125,9 @@
                 (self.getMousePosition().getX() - self.getSettingsManager().getCenter().getX()) / self.getSettingsManager().getScale(),
                 (self.getSettingsManager().getCenter().getY() - self.getMousePosition().getY()) / self.getSettingsManager().getScale()
             ]);
-        }).on('mouseup', function () {
-            clearTimeout(self._movingStateTimeout);
-            $(this).removeClass($.fn.smartGraph.classes.moving);
-            self._mouseMovingState = false;
-        }).on('mouseover mouseout', function () {
-            self._mouseMovingState = false;
-            self.setMousePosition(self.getSettingsManager().getCenter());
-        }).on('mouseover', function () {
-            self._activeState = true;
-        }).on('mouseout', function () {
-            self._activeState = false;
-        }).on('wheel', function (e) {
+        }).on('mousewheel DOMMouseScroll', function (e) {
             e.preventDefault();
-
-            if (e.originalEvent.wheelDelta > 1) {
+            if (e.originalEvent.wheelDelta > 0 || e.originalEvent.detail < 0) {
                 self.zoomIn();
             }
             else {
@@ -154,12 +160,12 @@
     smartGraphManager.prototype.processData = function () {
         var self = this;
 
-        self.getSettingsManager().getOptions().data.points.forEach(o => {
-            self.getCreatorManager().drawPoint(o);
+        self.getSettingsManager().getOptions().data.points.forEach(function (p) {
+            self.getCreatorManager().drawPoint(p);
         });
 
-        self.getSettingsManager().getOptions().data.functions.forEach(o => {
-            self.getCreatorManager().drawFunction(o);
+        self.getSettingsManager().getOptions().data.functions.forEach(function (f) {
+            self.getCreatorManager().drawFunction(f);
         });
 
         return self;
@@ -190,14 +196,14 @@
         var result = this.getSettingsManager().getOptions().data;
 
         if (data.hasOwnProperty('points')) {
-            data.points.forEach(p => {
+            data.points.forEach(function (p) {
                 result.points.push(p);
             });
         }
 
         if (data.hasOwnProperty('functions')) {
-            data.functions.forEach(o => {
-                result.functions.push(o);
+            data.functions.forEach(function (f) {
+                result.functions.push(f);
             });
         }
 
@@ -378,7 +384,7 @@
 
         for (var x = o.interval[0]; x <= o.interval[1]; x += o.step) {
             var y = o.relation(x);
-            if (Number.isFinite(y) && !Number.isNaN(y)) {
+            if (y !== Infinity && y !== -Infinity && y !== NaN) {
                 o = $.extend(true, {}, o, o.modifier(x, y, prevPoint === null ? null : prevPoint.x, prevPoint === null ? null : prevPoint.y, this.getCtxManager().getSettingsManager()));
 
                 var point = {
@@ -670,154 +676,156 @@
     };
 
     smartGraphSettingsManager.prototype.setOptions = function (options, update) {
-        this._options = $.extend(true, {}, update ? this._options : $.fn.smartGraph.defaults, options);
+        var self = this;
 
-        if (this._options.lines.color === null) {
-            this._options.lines.color = this._options.color;
+        self._options = $.extend(true, {}, update ? self._options : $.fn.smartGraph.defaults, options);
+
+        if (self._options.lines.color === null) {
+            self._options.lines.color = self._options.color;
         }
 
-        if (this._options.lines.color === null) {
-            this._options.lines.color = this._options.color;
+        if (self._options.lines.color === null) {
+            self._options.lines.color = self._options.color;
         }
 
-        if (this._options.texts.color === null) {
-            this._options.texts.color = this._options.color;
+        if (self._options.texts.color === null) {
+            self._options.texts.color = self._options.color;
         }
 
-        if (this._options.point.color === null) {
-            this._options.point.color = this._options.color;
+        if (self._options.point.color === null) {
+            self._options.point.color = self._options.color;
         }
 
-        if (this._options.point.hintlines.color === null) {
-            this._options.point.hintlines.color = this._options.lines.color;
+        if (self._options.point.hintlines.color === null) {
+            self._options.point.hintlines.color = self._options.lines.color;
         }
 
-        if (this._options.point.label.color === null) {
-            this._options.point.label.color = this._options.texts.color;
+        if (self._options.point.label.color === null) {
+            self._options.point.label.color = self._options.texts.color;
         }
 
-        if (this._options.point.thickness === null) {
-            this._options.point.thickness = this._options.lines.thickness;
+        if (self._options.point.thickness === null) {
+            self._options.point.thickness = self._options.lines.thickness;
         }
 
-        if (this._options.point.hintlines.thickness === null) {
-            this._options.point.hintlines.thickness = this._options.lines.thickness;
+        if (self._options.point.hintlines.thickness === null) {
+            self._options.point.hintlines.thickness = self._options.lines.thickness;
         }
 
-        if (this._options.function.connectlines.color === null) {
-            this._options.function.connectlines.color = this._options.lines.color;
+        if (self._options.function.connectlines.color === null) {
+            self._options.function.connectlines.color = self._options.lines.color;
         }
 
-        if (this._options.function.connectlines.thickness === null) {
-            this._options.function.connectlines.thickness = this._options.lines.thickness;
+        if (self._options.function.connectlines.thickness === null) {
+            self._options.function.connectlines.thickness = self._options.lines.thickness;
         }
 
-        if (this._options.function.points.color === null) {
-            this._options.function.points.color = this._options.point.color;
+        if (self._options.function.points.color === null) {
+            self._options.function.points.color = self._options.point.color;
         }
 
-        if (this._options.function.points.size === null) {
-            this._options.function.points.size = this._options.point.size;
+        if (self._options.function.points.size === null) {
+            self._options.function.points.size = self._options.point.size;
         }
 
-        if (this._options.function.points.thickness === null) {
-            this._options.function.points.thickness = this._options.point.thickness;
+        if (self._options.function.points.thickness === null) {
+            self._options.function.points.thickness = self._options.point.thickness;
         }
 
-        if (this._options.function.points.hintlines.color === null) {
-            this._options.function.points.hintlines.color = this._options.point.hintlines.color;
+        if (self._options.function.points.hintlines.color === null) {
+            self._options.function.points.hintlines.color = self._options.point.hintlines.color;
         }
 
-        if (this._options.function.points.hintlines.size === null) {
-            this._options.function.points.hintlines.size = this._options.point.hintlines.size;
+        if (self._options.function.points.hintlines.size === null) {
+            self._options.function.points.hintlines.size = self._options.point.hintlines.size;
         }
 
-        if (this._options.function.points.hintlines.thickness === null) {
-            this._options.function.points.hintlines.thickness = this._options.point.hintlines.thickness;
+        if (self._options.function.points.hintlines.thickness === null) {
+            self._options.function.points.hintlines.thickness = self._options.point.hintlines.thickness;
         }
 
-        if (this._options.function.points.hintlines.dash === null) {
-            this._options.function.points.hintlines.dash = this._options.point.hintlines.dash;
+        if (self._options.function.points.hintlines.dash === null) {
+            self._options.function.points.hintlines.dash = self._options.point.hintlines.dash;
         }
 
-        if (this._options.function.points.labels.color === null) {
-            this._options.function.points.labels.color = this._options.point.label.color;
+        if (self._options.function.points.labels.color === null) {
+            self._options.function.points.labels.color = self._options.point.label.color;
         }
 
-        if (this._options.function.points.labels.render === null) {
-            this._options.function.points.labels.render = this._options.point.label.render;
+        if (self._options.function.points.labels.render === null) {
+            self._options.function.points.labels.render = self._options.point.label.render;
         }
 
-        if (this._options.function.points.labels.font === null) {
-            this._options.function.points.labels.font = this._options.point.label.font;
+        if (self._options.function.points.labels.font === null) {
+            self._options.function.points.labels.font = self._options.point.label.font;
         }
 
-        if (this._options.function.points.labels.padding === null) {
-            this._options.function.points.labels.padding = this._options.point.label.padding;
+        if (self._options.function.points.labels.padding === null) {
+            self._options.function.points.labels.padding = self._options.point.label.padding;
         }
 
-        if (this._options.axises.thickness === null) {
-            this._options.axises.thickness = this._options.lines.thickness;
+        if (self._options.axises.thickness === null) {
+            self._options.axises.thickness = self._options.lines.thickness;
         }
 
-        if (this._options.axises.ticks.thickness === null) {
-            this._options.axises.ticks.thickness = this._options.axises.thickness;
+        if (self._options.axises.ticks.thickness === null) {
+            self._options.axises.ticks.thickness = self._options.axises.thickness;
         }
 
-        if (this._options.axises.color === null) {
-            this._options.axises.color = this._options.lines.color;
+        if (self._options.axises.color === null) {
+            self._options.axises.color = self._options.lines.color;
         }
 
-        if (this._options.axises.ticks.color === null) {
-            this._options.axises.ticks.color = this._options.lines.color;
+        if (self._options.axises.ticks.color === null) {
+            self._options.axises.ticks.color = self._options.lines.color;
         }
 
-        if (this._options.axises.ticks.titles.color === null) {
-            this._options.axises.ticks.titles.color = this._options.texts.color;
+        if (self._options.axises.ticks.titles.color === null) {
+            self._options.axises.ticks.titles.color = self._options.texts.color;
         }
 
-        if (this._options.axises.labels.color === null) {
-            this._options.axises.labels.color = this._options.texts.color;
+        if (self._options.axises.labels.color === null) {
+            self._options.axises.labels.color = self._options.texts.color;
         }
 
-        $.fn.smartGraph.constants.axises.names.forEach(axis => {
-            if (this._options.axises[axis].ticks.step === null) {
-                this._options.axises[axis].ticks.step = this._options.axises.ticks.step;
+        $.fn.smartGraph.constants.axises.names.forEach(function (axis) {
+            if (self._options.axises[axis].ticks.step === null) {
+                self._options.axises[axis].ticks.step = self._options.axises.ticks.step;
             }
 
-            if (this._options.axises[axis].ticks.titles.render === null) {
-                this._options.axises[axis].ticks.titles.render = this._options.axises.ticks.titles.render;
+            if (self._options.axises[axis].ticks.titles.render === null) {
+                self._options.axises[axis].ticks.titles.render = self._options.axises.ticks.titles.render;
             }
 
-            if (this._options.axises[axis].color === null) {
-                this._options.axises[axis].color = this._options.axises.color;
+            if (self._options.axises[axis].color === null) {
+                self._options.axises[axis].color = self._options.axises.color;
             }
 
-            if (this._options.axises[axis].ticks.color === null) {
-                this._options.axises[axis].ticks.color = this._options.axises.ticks.color;
+            if (self._options.axises[axis].ticks.color === null) {
+                self._options.axises[axis].ticks.color = self._options.axises.ticks.color;
             }
 
-            if (this._options.axises[axis].ticks.titles.color === null) {
-                this._options.axises[axis].ticks.titles.color = this._options.axises.ticks.titles.color;
+            if (self._options.axises[axis].ticks.titles.color === null) {
+                self._options.axises[axis].ticks.titles.color = self._options.axises.ticks.titles.color;
             }
 
-            if (this._options.axises[axis].label.color === null) {
-                this._options.axises[axis].label.color = this._options.axises.labels.color;
+            if (self._options.axises[axis].label.color === null) {
+                self._options.axises[axis].label.color = self._options.axises.labels.color;
             }
         });
 
-        if (this._options.function.step === null) {
-            this._options.function.step = this._options.axises.x.ticks.step;
+        if (self._options.function.step === null) {
+            self._options.function.step = self._options.axises.x.ticks.step;
         }
 
-        if (this._options.responsive.enable) {
-            this.getElement().addClass($.fn.smartGraph.classes.responsive);
+        if (self._options.responsive.enable) {
+            self.getElement().addClass($.fn.smartGraph.classes.responsive);
         }
         else {
-            this.getElement().removeClass($.fn.smartGraph.classes.responsive);
+            self.getElement().removeClass($.fn.smartGraph.classes.responsive);
         }
 
-        return this.setDefaultScale();
+        return self.setDefaultScale();
     };
 
     smartGraphSettingsManager.prototype.getOptions = function () {
@@ -888,7 +896,7 @@
     };
 
     smartGraphSettingsManager.prototype.setDefaultScale = function () {
-        this._defaultScale = $.fn.smartGraph.constants.readableTicksDistance.reduce((a, b) => (a + b) / 2) / Math.min(this.getOptions().axises.x.ticks.step, this.getOptions().axises.y.ticks.step);
+        this._defaultScale = $.fn.smartGraph.constants.readableTicksDistance.reduce(function (a, b) { return (a + b) / 2; }) / Math.min(this.getOptions().axises.x.ticks.step, this.getOptions().axises.y.ticks.step);
         return this;
     }
 

@@ -431,11 +431,15 @@ Use methods `addData` and `updateData` to set them dynamically.
 data: {
      functions: [
         {
-            relation: x => x + 2, /* compulsory */
+            relation: function (x) {
+                return x + 2;
+            }, /* compulsory, or x => x + 2 using lambda expression in newer browsers */
             interval: [-5, 5] /* compulsory */
         },
         {
-            relation: x => Math.pow() + 2,
+            relation: function (x) {
+                return Math.pow() + 2;
+            }, /* compulsory, or x => Math.pow() + 2 using lambda expression in newer browsers */
             interval: [-5, 5],
             step: .1,
             connectlines: {
@@ -446,7 +450,9 @@ data: {
             }
         },
         {
-            relation: x => Math.tan(x),
+            relation: function (x) {
+                return Math.tan(x);
+            }, /* compulsory, or x => Math.tan(x) using lambda expression in newer browsers */
             interval: [-4, 4],
             modifier: function (_x, y, _prevX, prevY) {
                 /* hide incorrect connectlines */
