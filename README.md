@@ -1,7 +1,7 @@
 # Jquery.smartGraph
 Free, easy to use, javascript library for generating beautiful vector graphs with many customizations.
 
-Current stable version: **1.1.0**
+Current stable version: **1.1.1**
 
 ### Features
 Jquery.smartGraph supports:
