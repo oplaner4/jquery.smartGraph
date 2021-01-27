@@ -184,7 +184,7 @@ $(function() {
 
 ### Options
 
-- [CheatSheet](/blob/master/cheatsheet.png)
+- [CheatSheet](/cheatsheet.png)
 - [Axises](#axises.thickness)
 - [Points](#data.points)
 - [Functions](#data.functions)
