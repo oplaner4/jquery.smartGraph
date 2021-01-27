@@ -185,10 +185,10 @@ $(function() {
 ### Options
 
 - [CheatSheet](/cheatsheet.png)
-- [Axises](#axises.thickness)
-- [Points](#data.points)
-- [Functions](#data.functions)
-- [Miscelaneous](#lines.color)
+- [Axises](#axisesthickness)
+- [Points](#datapoints)
+- [Functions](#datafunctions)
+- [Miscelaneous](#linescolor)
 
 #### color
 - Type: `String`
