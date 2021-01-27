@@ -1,7 +1,7 @@
 # Jquery.smartGraph
 Free, easy to use, javascript library for generating beautiful vector graphs with many customizations.
 
-Current stable version: **1.1.1**
+Current stable version: **1.2.0**
 
 ### Features
 Jquery.smartGraph supports:
@@ -183,6 +183,12 @@ $(function() {
 
 
 ### Options
+
+- [CheatSheet](/blob/master/cheatsheet.png)
+- [Axises](#axises.thickness)
+- [Points](#data.points)
+- [Functions](#data.functions)
+- [Miscelaneous](#lines.color)
 
 #### color
 - Type: `String`

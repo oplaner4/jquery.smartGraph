@@ -1,5 +1,5 @@
 /**
-* jquery.smartGraph 1.1.1
+* jquery.smartGraph 1.2.0
 * https://github.com/oplaner4/jquery.smartGraph
 * by Ondrej Planer, oplaner4@gmail.com
 *
