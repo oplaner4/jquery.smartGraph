@@ -1,5 +1,5 @@
 /**
-* jquery.smartGraph 1.2.0
+* jquery.smartGraph 1.3.0
 * https://github.com/oplaner4/jquery.smartGraph
 * by Ondrej Planer, oplaner4@gmail.com
 *
@@ -32,108 +32,143 @@
     var PLUGIN = 'smartGraph';
 
     var smartGraphManager = function (elem, options) {
-        var self = this;
+        let self = this;
         self._settingsManagerInstance = new smartGraphSettingsManager(options, elem);
         self._ctxManagerInstance = new smartGraphCtxManager(self._settingsManagerInstance);
         self._creatorManagerInstance = new smartGraphCreatorManager(self._ctxManagerInstance);
 
         self._mousePosition = null;
         self._activeState = false;
-        self._mouseMovingState = false;
-        self._movingStateTimeout = null;
+
+        self.initWindowEvents().reconstruct().initSourceElementEvents();
+    };
+
+    smartGraphManager.prototype.initWindowEvents = function () {
+        let self = this;
 
         $(window).on('resize', function () {
             if (self.getSettingsManager().getOptions().responsive.enable) {
                 self.getCtxManager().clear();
                 self.getSettingsManager().updateWidth().updateHeight();
                 self.create();
-            };
+            }
         }).on('keydown', function (event) {
-            if (self._activeState) {
-                if (event.which == 38) {
-                    event.preventDefault();
-                    self.moveUp();
-                }
+            if (!self._activeState) {
+                return;
+            }
 
-                if (event.which == 40) {
-                    event.preventDefault();
-                    self.moveDown();
-                }
+            if (event.which === 38) {
+                event.preventDefault();
+                self.moveUp();
+            }
 
-                if (event.which == 37) {
-                    event.preventDefault();
-                    self.moveLeft();
-                }
+            if (event.which === 40) {
+                event.preventDefault();
+                self.moveDown();
+            }
 
-                if (event.which == 39) {
-                    event.preventDefault();
-                    self.moveRight();
-                }
+            if (event.which === 37) {
+                event.preventDefault();
+                self.moveLeft();
+            }
 
-                if (event.which == 107) {
-                    event.preventDefault();
-                    self.zoomIn();
-                }
+            if (event.which === 39) {
+                event.preventDefault();
+                self.moveRight();
+            }
 
-                if (event.which == 109) {
-                    event.preventDefault();
-                    self.zoomOut();
-                }
+            if (event.which === 107) {
+                event.preventDefault();
+                self.zoomIn();
+            }
+
+            if (event.which === 109) {
+                event.preventDefault();
+                self.zoomOut();
             }
         }).trigger('resize');
 
-        self.reconstruct().getSettingsManager().getElement()
-        .addClass($.fn.smartGraph.classes.root)
-        .on('mousemove touchmove', function (e) {
-            var offset = self.getSettingsManager().getElement().offset();
-            var rect = e;
+        return self;
+    };
 
-            if (e.touches) {
-                rect = e.touches[0];
-            }
+    smartGraphManager.prototype.getPointByActualMousePosition = function () {
+        return new smartGraphPointManager(
+            (this.getMousePosition().getX() - this.getSettingsManager().getCenter().getX())
+            / this.getSettingsManager().getScale(),
+            (this.getSettingsManager().getCenter().getY()
+                - this.getMousePosition().getY()) / this.getSettingsManager().getScale(),
+            false
+        );
+    };
 
-            if (self._mouseMovingState) {
-                self.setOptions({
-                    move: {
-                        x: self.getSettingsManager().getOptions().move.x - self.getMousePosition().getX() - offset.left + rect.clientX,
-                        y: self.getSettingsManager().getOptions().move.y + self.getMousePosition().getY() + offset.top - rect.clientY - $(window).scrollTop(),
-                    }
-                });
-            }
+    smartGraphManager.prototype.initSourceElementEvents = function () {
+        let self = this;
 
-            self.setMousePosition(rect.clientX - offset.left, rect.clientY - offset.top + $(window).scrollTop());
-        }).on('mouseup touchend', function () {
-            clearTimeout(self._movingStateTimeout);
-            $(this).removeClass($.fn.smartGraph.classes.moving);
-            self._mouseMovingState = false;
-        }).on('mouseover mouseout touchstart touchend', function () {
-            self._mouseMovingState = false;
-            self.setMousePosition(self.getSettingsManager().getCenter());
-        }).on('mouseover touchstart', function () {
-            self._activeState = true;
-        }).on('mouseout touchend', function () {
-            self._activeState = false;
-        }).on('mousedown touchstart', function (e) {
-            e.preventDefault();
-            self._movingStateTimeout = setTimeout(function () {
-                self._mouseMovingState = true;
-                self.getSettingsManager().getElement().addClass($.fn.smartGraph.classes.moving);
-            }, 100);
+        let mouseMovingState = false;
+        let movingStateTimeout = null;
 
-            $(this).trigger(PLUGIN + '.click', [
-                self.getSettingsManager(),
-                (self.getMousePosition().getX() - self.getSettingsManager().getCenter().getX()) / self.getSettingsManager().getScale(),
-                (self.getSettingsManager().getCenter().getY() - self.getMousePosition().getY()) / self.getSettingsManager().getScale()
-            ]);
-        }).on('mousewheel DOMMouseScroll', function (e) {
-            e.preventDefault();
-            if (e.originalEvent.wheelDelta > 0 || e.originalEvent.detail < 0) {
-                self.zoomIn();
-            }
-            else {
-                self.zoomOut();
-            }
-        }).trigger(PLUGIN + '.init', [self.getSettingsManager()]);
+        self.getSettingsManager().getElement()
+            .addClass($.fn.smartGraph.classes.root)
+            .on('mousemove touchmove', function (e) {
+                let offset = $(this).offset();
+                let rect = e;
+
+                if (e.touches) {
+                    rect = e.touches[0];
+                }
+
+                if (mouseMovingState) {
+                    self.setOptions({
+                        move: {
+                            x: self.getSettingsManager().getOptions().move.x
+                                - self.getMousePosition().getX() - offset.left + rect.clientX,
+                            y: self.getSettingsManager().getOptions().move.y
+                                + self.getMousePosition().getY() + offset.top - rect.clientY
+                                - $(window).scrollTop(),
+                        }
+                    });
+                }
+
+                self.setMousePosition(
+                    rect.clientX - offset.left, rect.clientY - offset.top + $(window).scrollTop());
+
+            }).on('mouseup touchend', function () {
+                clearTimeout(movingStateTimeout);
+                this.classList.remove($.fn.smartGraph.classes.moving);
+                mouseMovingState = false;
+            }).on('mouseover mouseout touchstart touchend', function () {
+                mouseMovingState = false;
+                self.setMousePosition(self.getSettingsManager().getCenter());
+            }).on('mousedown touchstart', function (e) {
+                e.preventDefault();
+                let $this = $(this);
+
+                movingStateTimeout = setTimeout(function () {
+                    mouseMovingState = true;
+                    $this.addClass($.fn.smartGraph.classes.moving);
+                }, 100);
+
+                $this.trigger(PLUGIN + '.click', [
+                    self.getSettingsManager(),
+                    self.getPointByActualMousePosition(),
+                ]);
+            })
+            .on('mouseover touchstart', function () {
+                self._activeState = true;
+            }).on('mouseout touchend', function () {
+                self._activeState = false;
+            })
+            .on('mousewheel DOMMouseScroll', function (e) {
+                e.preventDefault();
+                if (e.originalEvent.wheelDelta > 0 || e.originalEvent.detail < 0) {
+                    self.zoomIn();
+                }
+                else {
+                    self.zoomOut();
+                }
+            }).trigger(PLUGIN + '.init', [self.getSettingsManager()]);
+
+        return self;
     };
 
     smartGraphManager.prototype.getSettingsManager = function () {
@@ -150,15 +185,15 @@
 
     smartGraphManager.prototype.getMousePosition = function () {
         return this._mousePosition;
-    }
+    };
 
     smartGraphManager.prototype.setMousePosition = function (x, y) {
         this._mousePosition = new smartGraphPointManager(x, y, true);
         return this;
-    }
+    };
 
     smartGraphManager.prototype.processData = function () {
-        var self = this;
+        let self = this;
 
         self.getSettingsManager().getOptions().data.points.forEach(function (p) {
             self.getCreatorManager().drawPoint(p);
@@ -174,7 +209,7 @@
     smartGraphManager.prototype.create = function () {
         this.processData().getCreatorManager().constructAxises();
         return this;
-    }
+    };
 
     smartGraphManager.prototype.reconstruct = function () {
         this.getCtxManager().clear();
@@ -190,10 +225,10 @@
         return this.setOptions({
             data: data
         });
-    }
+    };
 
     smartGraphManager.prototype.addData = function (data) {
-        var result = this.getSettingsManager().getOptions().data;
+        let result = this.getSettingsManager().getOptions().data;
 
         if (data.hasOwnProperty('points')) {
             data.points.forEach(function (p) {
@@ -208,56 +243,60 @@
         }
 
         return this.updateData(result);
-    }
+    };
 
     smartGraphManager.prototype.moveRight = function () {
         return this.setOptions({
             move: {
-                x: this.getSettingsManager().getOptions().move.x - this.getSettingsManager().getTicksDistance('x')
+                x: this.getSettingsManager().getOptions().move.x
+                    - this.getSettingsManager().getTicksDistance('x')
             }
         });
-    }
+    };
 
     smartGraphManager.prototype.moveLeft = function () {
         return this.setOptions({
             move: {
-                x: this.getSettingsManager().getOptions().move.x + this.getSettingsManager().getTicksDistance('x')
+                x: this.getSettingsManager().getOptions().move.x
+                    + this.getSettingsManager().getTicksDistance('x')
             }
         });
-    }
+    };
 
     smartGraphManager.prototype.moveUp = function () {
         return this.setOptions({
             move: {
-                y: this.getSettingsManager().getOptions().move.y - this.getSettingsManager().getTicksDistance('y')
+                y: this.getSettingsManager().getOptions().move.y
+                    - this.getSettingsManager().getTicksDistance('y')
             }
         });
-    }
+    };
 
     smartGraphManager.prototype.moveDown = function () {
         return this.setOptions({
             move: {
-                y: this.getSettingsManager().getOptions().move.y + this.getSettingsManager().getTicksDistance('y')
+                y: this.getSettingsManager().getOptions().move.y
+                    + this.getSettingsManager().getTicksDistance('y')
             }
         });
-    }
+    };
 
     smartGraphManager.prototype.zoomIn = function () {
         this.getSettingsManager().increaseScale();
         return this.reconstruct();
-    }
+    };
 
     smartGraphManager.prototype.zoomOut = function () {
         this.getSettingsManager().decreaseScale();
         return this.reconstruct();
-    }
+    };
 
 
 
 
     var smartGraphCreatorManager = function (ctxManagerInstance) {
         this._ctxManagerInstance = ctxManagerInstance;
-    }
+    };
 
     smartGraphCreatorManager.prototype.getCtxManager = function () {
         return this._ctxManagerInstance;
@@ -269,7 +308,8 @@
             .setStartPoint(
                 new smartGraphPointManager(
                     this.getCtxManager().getSettingsManager().getWidth(),
-                    this.getCtxManager().getSettingsManager().getCenter().getY() + this.getCtxManager().getSettingsManager().getOptions().axises.x.label.padding,
+                    this.getCtxManager().getSettingsManager().getCenter().getY()
+                    + this.getCtxManager().getSettingsManager().getOptions().axises.x.label.padding,
                     true
                 )
             )
@@ -280,15 +320,16 @@
             )
             .setColor(this.getCtxManager().getSettingsManager().getOptions().axises.y.label.color)
             .setStartPoint(
-                new smartGraphPointManager(this.getCtxManager().getSettingsManager().getCenter().getX() - this.getCtxManager().getSettingsManager().getOptions().axises.y.label.padding, 0, true)
+                new smartGraphPointManager(this.getCtxManager().getSettingsManager().getCenter().getX()
+                    - this.getCtxManager().getSettingsManager().getOptions().axises.y.label.padding, 0, true)
             ).drawText(
                 this.getCtxManager().getSettingsManager().getOptions().axises.y.label.caption,
                 this.getCtxManager().getSettingsManager().getOptions().axises.labels.font,
                 'right', 'top'
-        );
+            );
 
         return this;
-    }
+    };
 
     smartGraphCreatorManager.prototype.getAxisXNegativeCreatorManager = function () {
         return new smartGraphAxisCreatorManager(
@@ -296,7 +337,7 @@
             'x',
             new smartGraphPointManager(0, this.getCtxManager().getSettingsManager().getCenter().getY(), true)
         );
-    }
+    };
 
     smartGraphCreatorManager.prototype.constructAxises = function () {
         this.drawAxisesLabels().drawCenterTitle().getAxisXNegativeCreatorManager().construct();
@@ -304,7 +345,9 @@
         new smartGraphAxisCreatorManager(
             this.getCtxManager(),
             'x',
-            new smartGraphPointManager(this.getCtxManager().getSettingsManager().getWidth(), this.getCtxManager().getSettingsManager().getCenter().getY(), true)
+            new smartGraphPointManager(
+                this.getCtxManager().getSettingsManager().getWidth(),
+                this.getCtxManager().getSettingsManager().getCenter().getY(), true)
         ).construct();
 
         new smartGraphAxisCreatorManager(
@@ -316,7 +359,9 @@
         new smartGraphAxisCreatorManager(
             this.getCtxManager(),
             'y',
-            new smartGraphPointManager(this.getCtxManager().getSettingsManager().getCenter().getX(), this.getCtxManager().getSettingsManager().getHeight(), true)
+            new smartGraphPointManager(
+                this.getCtxManager().getSettingsManager().getCenter().getX(),
+                this.getCtxManager().getSettingsManager().getHeight(), true)
         ).construct();
 
         return this;
@@ -325,9 +370,14 @@
     smartGraphCreatorManager.prototype.drawCenterTitle = function () {
         this.getCtxManager()
             .setColor(this.getCtxManager().getSettingsManager().getOptions().axises.ticks.titles.color)
-            .setStartPoint(new smartGraphPointManager(-this.getCtxManager().getSettingsManager().getModifiedTickTitleDistance(), -1 * this.getCtxManager().getSettingsManager().getModifiedTickTitleDistance(), false))
+            .setStartPoint(
+                new smartGraphPointManager(
+                    -this.getCtxManager().getSettingsManager().getModifiedTickTitleDistance(),
+                    -1 * this.getCtxManager().getSettingsManager().getModifiedTickTitleDistance(), false)
+            )
             .drawText(
-                this.getCtxManager().getSettingsManager().getOptions().axises.ticks.titles.render(0, this.getAxisXNegativeCreatorManager()),
+                this.getCtxManager().getSettingsManager().getOptions().axises.ticks.titles.render(
+                    0, this.getAxisXNegativeCreatorManager()),
                 this.getCtxManager().getSettingsManager().getOptions().axises.ticks.titles.font,
                 'right',
                 'top'
@@ -339,7 +389,7 @@
     smartGraphCreatorManager.prototype.drawPoint = function (o) {
         o = $.extend(true, {}, this.getCtxManager().getSettingsManager().getOptions().point, o);
 
-        var d = o.size / (2 * this.getCtxManager().getSettingsManager().getScale());
+        let d = o.size / (2 * this.getCtxManager().getSettingsManager().getScale());
 
         this.getCtxManager()
             .setColor(o.color)
@@ -348,31 +398,41 @@
             .setStartPoint(new smartGraphPointManager(o.x, o.y - d, false))
             .drawLine(new smartGraphPointManager(o.x, o.y + d, false), o.thickness, []);
 
+        return this.drawPointHintline(o).drawPointLabel(o);
+    };
 
-        if (o.hintlines.show) {
+    smartGraphCreatorManager.prototype.drawPointHintline = function (extendedO) {
+        if (extendedO.hintlines.show) {
             this.getCtxManager()
-                .setColor(o.hintlines.color)
-                .setStartPoint(new smartGraphPointManager(o.x, o.y, false))
-                .drawLine(new smartGraphPointManager(0, o.y, false), o.hintlines.thickness, o.hintlines.dash)
-                .drawLine(new smartGraphPointManager(o.x, 0, false), o.hintlines.thickness, o.hintlines.dash)
+                .setColor(extendedO.hintlines.color)
+                .setStartPoint(new smartGraphPointManager(extendedO.x, extendedO.y, false))
+                .drawLine(new smartGraphPointManager(0, extendedO.y, false),
+                    extendedO.hintlines.thickness, extendedO.hintlines.dash)
+                .drawLine(new smartGraphPointManager(extendedO.x, 0, false),
+                    extendedO.hintlines.thickness, extendedO.hintlines.dash)
         }
 
+        return this;
+    };
 
+    smartGraphCreatorManager.prototype.drawPointLabel = function (extendedO) {
         this.getCtxManager()
-            .setColor(o.label.color)
+            .setColor(extendedO.label.color)
             .setStartPoint(
                 new smartGraphPointManager(
-                    o.x + (o.x > 0 ? 1 : -1) * o.label.padding / this.getCtxManager().getSettingsManager().getScale(),
-                    o.y + (o.y > 0 ? 1 : -1) * o.label.padding / this.getCtxManager().getSettingsManager().getScale(),
+                    extendedO.x + (extendedO.x > 0 ? 1 : -1) * extendedO.label.padding /
+                    this.getCtxManager().getSettingsManager().getScale(),
+                    extendedO.y + (extendedO.y > 0 ? 1 : -1) * extendedO.label.padding /
+                    this.getCtxManager().getSettingsManager().getScale(),
                     false
                 )
-        ).drawText(
-            o.label.render(o.x, o.y, this.getCtxManager().getSettingsManager()),
-                o.label.font,
-                o.x < 0 ? 'right' : 'left',
-                o.y < 0 ? 'top' : 'bottom'
-            )
-        
+            ).drawText(
+                extendedO.label.render(extendedO.x, extendedO.y, this.getCtxManager().getSettingsManager()),
+                extendedO.label.font,
+                extendedO.x < 0 ? 'right' : 'left',
+                extendedO.y < 0 ? 'top' : 'bottom'
+            );
+
 
         return this;
     };
@@ -380,53 +440,86 @@
     smartGraphCreatorManager.prototype.drawFunction = function (o) {
         o = $.extend(true, {}, this.getCtxManager().getSettingsManager().getOptions().function, o);
 
-        var prevPoint = null;
+        let prevPoint = null;
 
-        for (var x = o.interval[0]; x <= o.interval[1]; x += o.step) {
-            var y = o.relation(x);
-            if (y !== Infinity && y !== -Infinity && y !== NaN) {
-                o = $.extend(true, {}, o, o.modifier(x, y, prevPoint === null ? null : prevPoint.x, prevPoint === null ? null : prevPoint.y, this.getCtxManager().getSettingsManager()));
+        for (let x = o.interval[0]; x <= o.interval[1]; x += o.step) {
+            let y = o.relation(x);
 
-                var point = {
-                    x: x,
-                    y: y,
-                    size: o.points.size === null ? this.getCtxManager().getSettingsManager().getOptions().point.size : o.points.size,
-                    thickness: o.points.thickness === null ? this.getCtxManager().getSettingsManager().getOptions().point.thickness : o.points.thickness,
-                    color: o.points.color === null ? this.getCtxManager().getSettingsManager().getOptions().point.color : o.points.color,
-                    hintlines: {
-                        show: o.points.hintlines.show === null ? this.getCtxManager().getSettingsManager().getOptions().function.points.hintlines.show : o.points.hintlines.show,
-                        color: o.points.hintlines.color === null ? this.getCtxManager().getSettingsManager().getOptions().function.points.hintlines.color : o.points.hintlines.color,
-                        thickness: o.points.hintlines.thickness === null ? this.getCtxManager().getSettingsManager().getOptions().function.points.hintlines.show : o.points.hintlines.thickness,
-                        dash: o.points.hintlines.dash === null ? this.getCtxManager().getSettingsManager().getOptions().function.points.hintlines.dash : o.points.hintlines.dash
-                    },
-                    label: {
-                        render: o.points.labels.render === null ? this.getCtxManager().getSettingsManager().getOptions().point.label.render : o.points.labels.render,
-                        font: o.points.labels.font === null ? this.getCtxManager().getSettingsManager().getOptions().point.label.font : o.points.labels.font,
-                        color: o.points.labels.color === null ? this.getCtxManager().getSettingsManager().getOptions().point.label.color : o.points.labels.color,
-                        padding: o.points.labels.padding === null ? this.getCtxManager().getSettingsManager().getOptions().point.label.padding : o.points.labels.padding
-                    }
-                };
-
-                if (o.connectlines.show) {
-                    if (prevPoint !== null) {
-                        this.getCtxManager()
-                            .setStartPoint(new smartGraphPointManager(point.x, point.y, false))
-                            .setColor(o.connectlines.color)
-                            .drawLine(new smartGraphPointManager(prevPoint.x, prevPoint.y, false), o.connectlines.thickness, o.connectlines.dash);
-                    }
-                }
-
-                this.drawPoint(point);
-                prevPoint = point;
-            }
-            else {
+            if (y === Infinity || y === -Infinity || y === NaN) {
                 prevPoint = null;
+                continue;
             }
+
+            o = $.extend(
+                true, {}, o,
+                o.modifier(
+                    x, y, prevPoint === null ? null : prevPoint.x,
+                    prevPoint === null ? null : prevPoint.y,
+                    this.getCtxManager().getSettingsManager())
+            );
+
+            let point = this.getExtendedPoint(x, y, o);
+
+            this.drawFunctionConnectline(o, prevPoint, point).drawPoint(point);
+            prevPoint = point;
         }
 
         return this;
     };
 
+    smartGraphCreatorManager.prototype.drawFunctionConnectline = function (extendedO, prevPoint, point) {
+        if (extendedO.connectlines.show && prevPoint !== null) {
+            this.getCtxManager()
+                .setStartPoint(new smartGraphPointManager(point.x, point.y, false))
+                .setColor(extendedO.connectlines.color)
+                .drawLine(new smartGraphPointManager(prevPoint.x, prevPoint.y, false),
+                    extendedO.connectlines.thickness, extendedO.connectlines.dash);
+        }
+
+        return this;
+    };
+
+    smartGraphCreatorManager.prototype.getExtendedPoint = function (x, y, extendedO) {
+        return {
+            x: x,
+            y: y,
+            size: extendedO.points.size === null
+                ? this.getCtxManager().getSettingsManager().getOptions().point.size : extendedO.points.size,
+            thickness: extendedO.points.thickness === null
+                ? this.getCtxManager().getSettingsManager().getOptions().point.thickness
+                : extendedO.points.thickness,
+            color: extendedO.points.color === null
+                ? this.getCtxManager().getSettingsManager().getOptions().point.color : extendedO.points.color,
+            hintlines: {
+                show: extendedO.points.hintlines.show === null
+                    ? this.getCtxManager().getSettingsManager().getOptions().function.points.hintlines.show
+                    : extendedO.points.hintlines.show,
+                color: extendedO.points.hintlines.color === null
+                    ? this.getCtxManager().getSettingsManager().getOptions().function.points.hintlines.color
+                    : extendedO.points.hintlines.color,
+                thickness: extendedO.points.hintlines.thickness === null
+                    ? this.getCtxManager().getSettingsManager().getOptions().function.points.hintlines.show
+                    : extendedO.points.hintlines.thickness,
+                dash: extendedO.points.hintlines.dash === null
+                    ? this.getCtxManager().getSettingsManager().getOptions().function.points.hintlines.dash
+                    : extendedO.points.hintlines.dash
+            },
+            label: {
+                render: extendedO.points.labels.render === null
+                    ? this.getCtxManager().getSettingsManager().getOptions().point.label.render
+                    : extendedO.points.labels.render,
+                font: extendedO.points.labels.font === null
+                    ? this.getCtxManager().getSettingsManager().getOptions().point.label.font
+                    : extendedO.points.labels.font,
+                color: extendedO.points.labels.color === null
+                    ? this.getCtxManager().getSettingsManager().getOptions().point.label.color
+                    : extendedO.points.labels.color,
+                padding: extendedO.points.labels.padding === null
+                    ? this.getCtxManager().getSettingsManager().getOptions().point.label.padding
+                    : extendedO.points.labels.padding
+            }
+        };
+    };
 
 
 
@@ -434,7 +527,7 @@
         this._axis = axis;
         this._endPoint = endPoint;
         this._ctxManagerInstance = ctxManagerInstance;
-    }
+    };
 
     smartGraphAxisCreatorManager.prototype.getCtxManager = function () {
         return this._ctxManagerInstance;
@@ -446,11 +539,11 @@
 
     smartGraphAxisCreatorManager.prototype.getAxis = function () {
         return this._axis;
-    }
+    };
 
     smartGraphAxisCreatorManager.prototype.getEndPoint = function () {
         return this._endPoint;
-    }
+    };
 
     smartGraphAxisCreatorManager.prototype.isVisible = function () {
         if (this.getSettingsManager().getCenter().getX() < 0) {
@@ -479,25 +572,27 @@
         }
 
         return true;
-    }
+    };
 
     smartGraphAxisCreatorManager.prototype.isNegative = function () {
-        return this.getEndPoint().getX() < this.getSettingsManager().getCenter().getX() || this.getEndPoint().getY() > this.getSettingsManager().getCenter().getY();
-    }
+        return this.getEndPoint().getX() < this.getSettingsManager().getCenter().getX()
+            || this.getEndPoint().getY() > this.getSettingsManager().getCenter().getY();
+    };
 
     smartGraphAxisCreatorManager.prototype.getLength = function () {
         return this.getEndPoint().getDistanceFrom(this.getSettingsManager().getCenter());
-    }
+    };
 
     smartGraphAxisCreatorManager.prototype.getCountNecessaryTicks = function () {
         return Math.ceil(
-            this.getLength() / (this.getSettingsManager().getModifiedTicksStep(this.getAxis()) * this.getSettingsManager().getScale())
+            this.getLength() / (this.getSettingsManager().getModifiedTicksStep(this.getAxis())
+                * this.getSettingsManager().getScale())
         );
-    }
+    };
 
     smartGraphAxisCreatorManager.prototype.getAxisOptions = function () {
         return this.getSettingsManager().getOptions().axises[this.getAxis()];
-    }
+    };
 
     smartGraphAxisCreatorManager.prototype.construct = function () {
         if (this.isVisible()) {
@@ -506,12 +601,10 @@
                 .setStartPoint(this.getSettingsManager().getCenter())
                 .drawLine(this.getEndPoint(), this.getSettingsManager().getOptions().axises.thickness, []);
 
-            var ticks = this.getCountNecessaryTicks();
+            let ticks = this.getCountNecessaryTicks();
 
-            for (var i = 1; i < ticks; i += 1) {
-                var value = i * this.getSettingsManager().getModifiedTicksStep(this.getAxis());
-
-
+            for (let i = 1; i < ticks; i += 1) {
+                let value = i * this.getSettingsManager().getModifiedTicksStep(this.getAxis());
 
                 if (this.isNegative()) {
                     value *= -1;
@@ -525,14 +618,15 @@
     };
 
     smartGraphAxisCreatorManager.prototype.drawTick = function (value) {
-        var tickCreator = new smartGraphTickManager(
+        let tickCreator = new smartGraphTickManager(
             this.getSettingsManager(), this.getAxis(), value
         );
 
         this.getCtxManager()
             .setColor(this.getAxisOptions().ticks.color)
             .setStartPoint(tickCreator.getLineStartPoint())
-            .drawLine(tickCreator.getLineEndPoint(), this.getSettingsManager().getOptions().axises.ticks.thickness, [])
+            .drawLine(tickCreator.getLineEndPoint(),
+                this.getSettingsManager().getOptions().axises.ticks.thickness, [])
             .setColor(this.getAxisOptions().ticks.titles.color)
             .setStartPoint(tickCreator.getTitlePoint())
             .drawText(
@@ -541,7 +635,7 @@
                 $.fn.smartGraph.constants.axises[this.getAxis()].ticks.titles.align,
                 $.fn.smartGraph.constants.axises[this.getAxis()].ticks.titles.baseline
             );
-        
+
 
         return this;
     };
@@ -551,16 +645,17 @@
             return 0;
         }
 
-        var nextTick = this.isNegative() ? value - this.getSettingsManager().getModifiedTicksStep(this.getAxis()) : value + this.getSettingsManager().getModifiedTicksStep(this.getAxis());
-        var digits = 1;
-        var result = 0;
+        let nextTick = this.isNegative() ? value - this.getSettingsManager().getModifiedTicksStep(
+            this.getAxis()) : value + this.getSettingsManager().getModifiedTicksStep(this.getAxis());
+        let digits = 1;
+        let result = 0;
 
         while ((result = value.roundDigits(digits)) === 0 || result === nextTick.roundDigits(digits)) {
             digits += 2;
         }
 
         return result;
-    }
+    };
 
 
 
@@ -584,11 +679,13 @@
 
     smartGraphTickManager.prototype.getLineStartPoint = function () {
         if (this.getAxis() === 'x') {
-            return new smartGraphPointManager(this.getValue(), -1 * this.getSettingsManager().getModifiedTickSize(), false);
+            return new smartGraphPointManager(
+                this.getValue(), -1 * this.getSettingsManager().getModifiedTickSize(), false);
         }
 
         if (this.getAxis() === 'y') {
-            return new smartGraphPointManager(-1 * this.getSettingsManager().getModifiedTickSize(), this.getValue(), false);
+            return new smartGraphPointManager(
+                -1 * this.getSettingsManager().getModifiedTickSize(), this.getValue(), false);
         }
 
         throw new Error("Invalid axis");
@@ -596,11 +693,13 @@
 
     smartGraphTickManager.prototype.getLineEndPoint = function () {
         if (this.getAxis() === 'x') {
-            return new smartGraphPointManager(this.getValue(), this.getSettingsManager().getModifiedTickSize(), false);
+            return new smartGraphPointManager(
+                this.getValue(), this.getSettingsManager().getModifiedTickSize(), false);
         }
 
         if (this.getAxis() === 'y') {
-            return new smartGraphPointManager(this.getSettingsManager().getModifiedTickSize(), this.getValue(), false);
+            return new smartGraphPointManager(
+                this.getSettingsManager().getModifiedTickSize(), this.getValue(), false);
         }
 
         throw new Error("Invalid axis");
@@ -608,11 +707,13 @@
 
     smartGraphTickManager.prototype.getTitlePoint = function () {
         if (this.getAxis() === 'x') {
-            return new smartGraphPointManager(this.getValue(), -1 * this.getSettingsManager().getModifiedTickTitleDistance(), false);
+            return new smartGraphPointManager(
+                this.getValue(), -1 * this.getSettingsManager().getModifiedTickTitleDistance(), false);
         }
 
         if (this.getAxis() === 'y') {
-            return new smartGraphPointManager(-1 * this.getSettingsManager().getModifiedTickTitleDistance(), this.getValue(), false);
+            return new smartGraphPointManager(
+                -1 * this.getSettingsManager().getModifiedTickTitleDistance(), this.getValue(), false);
         }
 
         throw new Error("Invalid axis");
@@ -626,14 +727,14 @@
         this._y = y;
         this._real = real;
         this.color = null;
-    }
+    };
 
-    smartGraphPointManager.prototype.getDistanceFrom = function (point) {
-        return Math.sqrt(Math.pow(point.getX() - this.getX(), 2) + Math.pow(point.getY() - this.getY(), 2));
-    }
+    smartGraphPointManager.prototype.getDistanceFrom = function (anotherPointManager) {
+        return Math.sqrt(Math.pow(anotherPointManager.getX() - this.getX(), 2) + Math.pow(anotherPointManager.getY() - this.getY(), 2));
+    };
 
-    smartGraphPointManager.prototype.equals = function (point) {
-        return this.getDistanceFrom(point) < $.fn.smartGraph.constants.elementaryDistance;
+    smartGraphPointManager.prototype.equals = function (anotherPointManager) {
+        return this.getDistanceFrom(anotherPointManager) < $.fn.smartGraph.constants.elementaryDistance;
     };
 
     smartGraphPointManager.prototype.getX = function () {
@@ -676,7 +777,7 @@
     };
 
     smartGraphSettingsManager.prototype.setOptions = function (options, update) {
-        var self = this;
+        let self = this;
 
         self._options = $.extend(true, {}, update ? self._options : $.fn.smartGraph.defaults, options);
 
@@ -834,7 +935,7 @@
 
     smartGraphSettingsManager.prototype.getTicksDistance = function (axis) {
         return this.getScale() * (this.getOptions().axises[axis].ticks.step * this._modifierTickStep[axis]);
-    }
+    };
 
     smartGraphSettingsManager.prototype.getModifiedTicksStep = function (axis) {
         if (this.getScale() === this.getDefaultScale()) {
@@ -842,22 +943,25 @@
         }
 
         if (this.getTicksDistance(axis) < $.fn.smartGraph.constants.readableTicksDistance[0]) {
-            this._modifierTickStep[axis] = $.fn.smartGraph.constants.readableTicksDistance[1] / (this.getOptions().axises[axis].ticks.step * this.getScale());
+            this._modifierTickStep[axis] = $.fn.smartGraph.constants.readableTicksDistance[1] /
+                (this.getOptions().axises[axis].ticks.step * this.getScale());
         }
         else if (this.getTicksDistance(axis) > $.fn.smartGraph.constants.readableTicksDistance[1]) {
-            this._modifierTickStep[axis] = $.fn.smartGraph.constants.readableTicksDistance[0] / (this.getOptions().axises[axis].ticks.step * this.getScale());
+            this._modifierTickStep[axis] = $.fn.smartGraph.constants.readableTicksDistance[0] /
+                (this.getOptions().axises[axis].ticks.step * this.getScale());
         }
 
         return this.getOptions().axises[axis].ticks.step * this._modifierTickStep[axis];
-    }
+    };
 
     smartGraphSettingsManager.prototype.getModifiedTickSize = function () {
         return this.getOptions().axises.ticks.size / (2 * this.getScale());
-    }
+    };
 
     smartGraphSettingsManager.prototype.getModifiedTickTitleDistance = function () {
-        return (this.getOptions().axises.ticks.size + this.getOptions().axises.ticks.titles.padding) / (2 * this.getScale());
-    }
+        return (this.getOptions().axises.ticks.size + this.getOptions().axises.ticks.titles.padding) /
+            (2 * this.getScale());
+    };
 
     smartGraphSettingsManager.prototype.updateWidth = function () {
         this._width = this.getElement().outerWidth();
@@ -880,7 +984,8 @@
     };
 
     smartGraphSettingsManager.prototype.getCenter = function () {
-        return new smartGraphPointManager(this.getWidth() / 2 + this.getOptions().move.x, this.getHeight() / 2 - this.getOptions().move.y, true);
+        return new smartGraphPointManager(this.getWidth() /
+            2 + this.getOptions().move.x, this.getHeight() / 2 - this.getOptions().move.y, true);
     };
 
     smartGraphSettingsManager.prototype.getCanvas = function () {
@@ -892,11 +997,13 @@
     };
 
     smartGraphSettingsManager.prototype.getDefaultScale = function () {
-         return this._defaultScale;
+        return this._defaultScale;
     };
 
     smartGraphSettingsManager.prototype.setDefaultScale = function () {
-        this._defaultScale = $.fn.smartGraph.constants.readableTicksDistance.reduce(function (a, b) { return (a + b) / 2; }) / Math.min(this.getOptions().axises.x.ticks.step, this.getOptions().axises.y.ticks.step);
+        this._defaultScale = $.fn.smartGraph.constants.readableTicksDistance.reduce(function (a, b) {
+            return (a + b) / 2;
+        }) / Math.min(this.getOptions().axises.x.ticks.step, this.getOptions().axises.y.ticks.step);
         return this;
     }
 
@@ -918,7 +1025,7 @@
         this._ctx = this.getSettingsManager().getCanvas().get(0).getContext('2d');
         this._color = $.fn.smartGraph.defaults.color;
         this._startPoint = new smartGraphPointManager(0, 0, true);
-    }
+    };
 
     smartGraphCtxManager.prototype.getSettingsManager = function () {
         return this._settingsManagerInstance;
@@ -942,7 +1049,7 @@
         this.getCtx().stroke();
 
         return this;
-    }
+    };
 
     smartGraphCtxManager.prototype.drawText = function (text, font, align, baseline) {
         this.getCtx().font = font;
@@ -956,7 +1063,7 @@
         );
 
         return this;
-    }
+    };
 
     smartGraphCtxManager.prototype.getCtx = function () {
         return this._ctx;
@@ -981,9 +1088,11 @@
     };
 
     smartGraphCtxManager.prototype.clear = function () {
-        this.getCtx().clearRect(0, 0, this.getSettingsManager().getWidth(), this.getSettingsManager().getHeight());
+        this.getCtx().clearRect(
+            0, 0, this.getSettingsManager().getWidth(),
+            this.getSettingsManager().getHeight());
         return this;
-    }
+    };
 
     smartGraphCtxManager.prototype.getRealX = function (p) {
         if (p.isReal()) {
@@ -1005,12 +1114,12 @@
 
 
     $.fn.smartGraph = function (optionsOrCallbackName) {
-        var isCallback = optionsOrCallbackName instanceof String || typeof optionsOrCallbackName === 'string';
-        var smartGraphManagerInstance = PLUGIN + 'ManagerInstance';
-        var callbackArguments = arguments;
+        let isCallback = optionsOrCallbackName instanceof String || typeof optionsOrCallbackName === 'string';
+        let smartGraphManagerInstance = PLUGIN + 'ManagerInstance';
+        let callbackArguments = arguments;
 
         if (isCallback && optionsOrCallbackName === 'instance') {
-            var manager = this.data(smartGraphManagerInstance);
+            let manager = this.data(smartGraphManagerInstance);
             if (manager instanceof smartGraphManager) {
                 return manager;
             }
@@ -1018,12 +1127,13 @@
         }
 
         return this.each(function () {
-            var $this = $(this);
+            let $this = $(this);
             if (isCallback) {
-                var manager = $this.data(smartGraphManagerInstance);
+                let manager = $this.data(smartGraphManagerInstance);
                 if (manager instanceof smartGraphManager) {
                     if (manager[optionsOrCallbackName] instanceof Function) {
-                        manager[optionsOrCallbackName].apply(manager, Array.prototype.slice.call(callbackArguments, 1));
+                        manager[optionsOrCallbackName].apply(
+                            manager, Array.prototype.slice.call(callbackArguments, 1));
                     }
                 }
             }
@@ -1036,7 +1146,7 @@
     $.fn.smartGraph.classes = {
         root: 'smart-graph',
         responsive: 'smart-graph-responsive',
-        moving: 'smart-graph-moving'
+        moving: 'smart-graph-moving',
     };
 
     $.fn.smartGraph.constants = {
@@ -1046,18 +1156,18 @@
                 ticks: {
                     titles: {
                         baseline: 'top',
-                        align: 'center'
-                    }
-                }
+                        align: 'center',
+                    },
+                },
             },
             y: {
                 ticks: {
                     titles: {
                         baseline: 'middle',
-                        align: 'right'
-                    }
-                }
-            }
+                        align: 'right',
+                    },
+                },
+            },
         },
         elementaryDistance: 4,
         scaleElementaryChange: 0.9,
@@ -1080,49 +1190,49 @@
                     color: null, /* inherits from texts.color */
                     render: function (value, axisCreatorManager) {
                         return axisCreatorManager.getOptimallyRoundedTick(value);
-                    }
-                }
+                    },
+                },
             },
             labels: {
                 font: '20px Calibri',
-                color: null  /* inherits from texts.color */
+                color: null, /* inherits from texts.color */
             },
             x: {
                 color: null, /* inherits from axises.color */
                 label: {
                     caption: 'x',
                     color: null,  /* inherits from axises.labels.color */
-                    padding: 20
+                    padding: 20,
                 },
                 ticks: {
                     step: null, /* inherits from axises.ticks.step */
                     color: null, /* inherits from axises.color */
                     titles: {
                         color: null, /* inherits from axises.ticks..titles.color */
-                        render: null /* inherits from axises.ticks.titles.render */
-                    }
-                }
+                        render: null, /* inherits from axises.ticks.titles.render */
+                    },
+                },
             },
             y: {
                 color: null, /* inherits from axises.color */
                 label: {
                     caption: 'y',
                     color: null, /* inherits from axises.labels.color */
-                    padding: 20
+                    padding: 20,
                 },
                 ticks: {
                     step: null, /* inherits from axises.ticks.step */
                     color: null, /* inherits from axises.color */
                     titles: {
                         color: null, /* inherits from axises.ticks.titles.color */
-                        render: null /* inherits from axises.ticks.titles.render */
-                    }
-                }
-            }
+                        render: null, /* inherits from axises.ticks.titles.render */
+                    },
+                },
+            },
         },
         data: {
             points: [],
-            functions: []
+            functions: [],
         },
         point: {
             size: 10,
@@ -1132,7 +1242,7 @@
                 show: false,
                 color: null, /* inherits from lines.color */
                 thickness: null, /* inherits from lines.thickness */
-                dash: [2, 2]
+                dash: [2, 2],
             },
             label: {
                 font: '13px Calibri',
@@ -1140,8 +1250,8 @@
                 padding: 7,
                 render: function (x, y) {
                     return '(' + x.roundDigits(2) + ', ' + y.roundDigits(2) + ')';
-                }
-            }
+                },
+            },
         },
         'function': {
             step: null, /* inherits from axises.x.ticks.step */
@@ -1152,7 +1262,7 @@
                 show: true,
                 color: null, /* inherits from lines.color */
                 thickness: null, /* inherits from lines.thickness */
-                dash: []
+                dash: [],
             },
             points: {
                 color: null, /* inherits from point.color */
@@ -1162,7 +1272,7 @@
                     show: null, /* inherits from point.hintlines.show */
                     color: null, /* inherits from point.hintlines.color */
                     thickness: null, /* inherits from point.hintlines.thickness */
-                    dash: null /* inherits from point.hintlines.dash */
+                    dash: null, /* inherits from point.hintlines.dash */
                 },
                 labels: {
                     font: null, /* inherits from point.label.font */
@@ -1170,29 +1280,29 @@
                     padding: null, /* inherits from point.label.padding */
                     render: function () {
                         return '';
-                    }
-                }
-            }
+                    },
+                },
+            },
         },
         lines: {
             color: null, /* inherits from color */
-            thickness: 1
+            thickness: 1,
         },
         texts: {
-            color: null /* inherits from color */
+            color: null, /* inherits from color */
         },
         move: {
             x: 0,
-            y: 0
+            y: 0,
         },
         responsive: {
             enable: true,
-            ratio: 16 / 9
-        }
+            ratio: 16 / 9,
+        },
     };
 
     Number.prototype.roundDigits = function (digits) {
-        var q = Math.pow(10, digits);
+        let q = Math.pow(10, digits);
         return Math.round(this.valueOf() * q) / q;
-    }
+    };
 }));
