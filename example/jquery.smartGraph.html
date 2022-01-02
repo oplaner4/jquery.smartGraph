@@ -306,12 +306,12 @@
             });
 
 
-            $('.smart-graph-5').attr('title', 'click to draw a point').on('smartGraph.click', function (_e, _settingsManager, x, y) {
+            $('.smart-graph-5').attr('title', 'click to draw a point').on('smartGraph.click', function (_e, _settingsManager, pointManager) {
                 $(this).smartGraph('addData', {
                     points: [
                         {
-                            x: x,
-                            y: y,
+                            x: pointManager.getX(),
+                            y: pointManager.getY(),
                             color: 'red',
                             size: 9,
                             thickness: 2,
@@ -396,7 +396,7 @@
                                 },
                                 labels: {
                                     render: function (x, y) {
-                                        return '[' + x + ', ' + y + ']';
+                                        return '[' + x.roundDigits(2) + ', ' + y.roundDigits(2) + ']';
                                     }
                                 }
                             },

@@ -32,24 +32,23 @@
     var PLUGIN = 'smartGraph';
 
     var smartGraphManager = function (elem, options) {
-        let self = this;
-        self._settingsManagerInstance = new smartGraphSettingsManager(options, elem);
-        self._ctxManagerInstance = new smartGraphCtxManager(self._settingsManagerInstance);
-        self._creatorManagerInstance = new smartGraphCreatorManager(self._ctxManagerInstance);
+        this._settingsManagerInstance = new smartGraphSettingsManager(options, elem);
+        this._ctxManagerInstance = new smartGraphCtxManager(this._settingsManagerInstance);
+        this._creatorManagerInstance = new smartGraphCreatorManager(this._ctxManagerInstance);
 
-        self._mousePosition = null;
-        self._activeState = false;
+        this._mousePosition = null;
+        this._activeState = false;
 
-        self.initWindowEvents().reconstruct().initSourceElementEvents();
+        this.initWindowEvents().reconstruct().initSourceElementEvents();
     };
 
     smartGraphManager.prototype.initWindowEvents = function () {
         let self = this;
 
         $(window).on('resize', function () {
-            if (self.getSettingsManager().getOptions().responsive.enable) {
-                self.getCtxManager().clear();
-                self.getSettingsManager().updateWidth().updateHeight();
+            if (self._settingsManagerInstance.getOptions().responsive.enable) {
+                self._ctxManagerInstance.clear();
+                self._settingsManagerInstance.updateWidth().updateHeight();
                 self.create();
             }
         }).on('keydown', function (event) {
@@ -93,10 +92,10 @@
 
     smartGraphManager.prototype.getPointByActualMousePosition = function () {
         return new smartGraphPointManager(
-            (this.getMousePosition().getX() - this.getSettingsManager().getCenter().getX())
-            / this.getSettingsManager().getScale(),
-            (this.getSettingsManager().getCenter().getY()
-                - this.getMousePosition().getY()) / this.getSettingsManager().getScale(),
+            (this._mousePosition.getX() - this._settingsManagerInstance.getCenter().getX())
+            / this._settingsManagerInstance.getScale(),
+            (this._settingsManagerInstance.getCenter().getY()
+                - this._mousePosition.getY()) / this._settingsManagerInstance.getScale(),
             false
         );
     };
@@ -107,7 +106,7 @@
         let mouseMovingState = false;
         let movingStateTimeout = null;
 
-        self.getSettingsManager().getElement()
+        self._settingsManagerInstance.getElement()
             .addClass($.fn.smartGraph.classes.root)
             .on('mousemove touchmove', function (e) {
                 let offset = $(this).offset();
@@ -120,17 +119,18 @@
                 if (mouseMovingState) {
                     self.setOptions({
                         move: {
-                            x: self.getSettingsManager().getOptions().move.x
-                                - self.getMousePosition().getX() - offset.left + rect.clientX,
-                            y: self.getSettingsManager().getOptions().move.y
-                                + self.getMousePosition().getY() + offset.top - rect.clientY
+                            x: self._settingsManagerInstance.getOptions().move.x
+                                - self._mousePosition.getX() - offset.left + rect.clientX,
+                            y: self._settingsManagerInstance.getOptions().move.y
+                                + self._mousePosition.getY() + offset.top - rect.clientY
                                 - $(window).scrollTop(),
                         }
                     });
                 }
 
-                self.setMousePosition(
-                    rect.clientX - offset.left, rect.clientY - offset.top + $(window).scrollTop());
+                self._mousePosition = new smartGraphPointManager(
+                    rect.clientX - offset.left,
+                    rect.clientY - offset.top + $(window).scrollTop(), true);
 
             }).on('mouseup touchend', function () {
                 clearTimeout(movingStateTimeout);
@@ -138,7 +138,7 @@
                 mouseMovingState = false;
             }).on('mouseover mouseout touchstart touchend', function () {
                 mouseMovingState = false;
-                self.setMousePosition(self.getSettingsManager().getCenter());
+                self._mousePosition = self._settingsManagerInstance.getCenter();
             }).on('mousedown touchstart', function (e) {
                 e.preventDefault();
                 let $this = $(this);
@@ -149,7 +149,7 @@
                 }, 100);
 
                 $this.trigger(PLUGIN + '.click', [
-                    self.getSettingsManager(),
+                    self._settingsManagerInstance,
                     self.getPointByActualMousePosition(),
                 ]);
             })
@@ -166,58 +166,37 @@
                 else {
                     self.zoomOut();
                 }
-            }).trigger(PLUGIN + '.init', [self.getSettingsManager()]);
+            }).trigger(PLUGIN + '.init', [self._settingsManagerInstance]);
 
         return self;
-    };
-
-    smartGraphManager.prototype.getSettingsManager = function () {
-        return this._settingsManagerInstance;
-    };
-
-    smartGraphManager.prototype.getCtxManager = function () {
-        return this._ctxManagerInstance;
-    };
-
-    smartGraphManager.prototype.getCreatorManager = function () {
-        return this._creatorManagerInstance;
-    };
-
-    smartGraphManager.prototype.getMousePosition = function () {
-        return this._mousePosition;
-    };
-
-    smartGraphManager.prototype.setMousePosition = function (x, y) {
-        this._mousePosition = new smartGraphPointManager(x, y, true);
-        return this;
     };
 
     smartGraphManager.prototype.processData = function () {
         let self = this;
 
-        self.getSettingsManager().getOptions().data.points.forEach(function (p) {
-            self.getCreatorManager().drawPoint(p);
+        self._settingsManagerInstance.getOptions().data.points.forEach(function (p) {
+            self._creatorManagerInstance.drawPoint(p);
         });
 
-        self.getSettingsManager().getOptions().data.functions.forEach(function (f) {
-            self.getCreatorManager().drawFunction(f);
+        self._settingsManagerInstance.getOptions().data.functions.forEach(function (f) {
+            self._creatorManagerInstance.drawFunction(f);
         });
 
         return self;
     };
 
     smartGraphManager.prototype.create = function () {
-        this.processData().getCreatorManager().constructAxises();
+        this.processData()._creatorManagerInstance.constructAxises();
         return this;
     };
 
     smartGraphManager.prototype.reconstruct = function () {
-        this.getCtxManager().clear();
+        this._ctxManagerInstance.clear();
         return this.create();
     };
 
     smartGraphManager.prototype.setOptions = function (options) {
-        this.getSettingsManager().setOptions(options, true);
+        this._settingsManagerInstance.setOptions(options, true);
         return this.reconstruct();
     };
 
@@ -228,7 +207,7 @@
     };
 
     smartGraphManager.prototype.addData = function (data) {
-        let result = this.getSettingsManager().getOptions().data;
+        let result = this._settingsManagerInstance.getOptions().data;
 
         if (data.hasOwnProperty('points')) {
             data.points.forEach(function (p) {
@@ -248,8 +227,8 @@
     smartGraphManager.prototype.moveRight = function () {
         return this.setOptions({
             move: {
-                x: this.getSettingsManager().getOptions().move.x
-                    - this.getSettingsManager().getTicksDistance('x')
+                x: this._settingsManagerInstance.getOptions().move.x
+                    - this._settingsManagerInstance.getTicksDistance('x')
             }
         });
     };
@@ -257,8 +236,8 @@
     smartGraphManager.prototype.moveLeft = function () {
         return this.setOptions({
             move: {
-                x: this.getSettingsManager().getOptions().move.x
-                    + this.getSettingsManager().getTicksDistance('x')
+                x: this._settingsManagerInstance.getOptions().move.x
+                    + this._settingsManagerInstance.getTicksDistance('x')
             }
         });
     };
@@ -266,8 +245,8 @@
     smartGraphManager.prototype.moveUp = function () {
         return this.setOptions({
             move: {
-                y: this.getSettingsManager().getOptions().move.y
-                    - this.getSettingsManager().getTicksDistance('y')
+                y: this._settingsManagerInstance.getOptions().move.y
+                    - this._settingsManagerInstance.getTicksDistance('y')
             }
         });
     };
@@ -275,22 +254,33 @@
     smartGraphManager.prototype.moveDown = function () {
         return this.setOptions({
             move: {
-                y: this.getSettingsManager().getOptions().move.y
-                    + this.getSettingsManager().getTicksDistance('y')
+                y: this._settingsManagerInstance.getOptions().move.y
+                    + this._settingsManagerInstance.getTicksDistance('y')
             }
         });
     };
 
     smartGraphManager.prototype.zoomIn = function () {
-        this.getSettingsManager().increaseScale();
+        this._settingsManagerInstance.increaseScale();
         return this.reconstruct();
     };
 
     smartGraphManager.prototype.zoomOut = function () {
-        this.getSettingsManager().decreaseScale();
+        this._settingsManagerInstance.decreaseScale();
         return this.reconstruct();
     };
 
+    smartGraphManager.throwTypeError = function (property, object) {
+        throw new TypeError('Property "' + property + '" is not specified' +
+            ' or is of wrong type at "' + object + '"'
+        );
+    };
+
+    smartGraphManager.throwRangeError = function (property, object) {
+        throw new RangeError('Property "' + property + '" seems invalid' +
+            ' at "' + object + '"'
+        );
+    };
 
 
 
@@ -302,29 +292,34 @@
         return this._ctxManagerInstance;
     };
 
+    smartGraphCreatorManager.prototype.getSettingsManager = function () {
+        return this.getCtxManager().getSettingsManager();
+    };
+
     smartGraphCreatorManager.prototype.drawAxisesLabels = function () {
+        let options = this.getSettingsManager().getOptions();
+
         this.getCtxManager()
-            .setColor(this.getCtxManager().getSettingsManager().getOptions().axises.x.label.color)
+            .setColor(options.axises.x.label.color)
             .setStartPoint(
                 new smartGraphPointManager(
-                    this.getCtxManager().getSettingsManager().getWidth(),
-                    this.getCtxManager().getSettingsManager().getCenter().getY()
-                    + this.getCtxManager().getSettingsManager().getOptions().axises.x.label.padding,
+                    this.getSettingsManager().getWidth(),
+                    this.getSettingsManager().getCenter().getY()
+                    + options.axises.x.label.padding,
                     true
                 )
             )
             .drawText(
-                this.getCtxManager().getSettingsManager().getOptions().axises.x.label.caption,
-                this.getCtxManager().getSettingsManager().getOptions().axises.labels.font,
+                options.axises.x.label.caption, options.axises.labels.font,
                 'right', 'top'
             )
-            .setColor(this.getCtxManager().getSettingsManager().getOptions().axises.y.label.color)
+            .setColor(options.axises.y.label.color)
             .setStartPoint(
-                new smartGraphPointManager(this.getCtxManager().getSettingsManager().getCenter().getX()
-                    - this.getCtxManager().getSettingsManager().getOptions().axises.y.label.padding, 0, true)
+                new smartGraphPointManager(this.getSettingsManager().getCenter().getX()
+                    - options.axises.y.label.padding, 0, true)
             ).drawText(
-                this.getCtxManager().getSettingsManager().getOptions().axises.y.label.caption,
-                this.getCtxManager().getSettingsManager().getOptions().axises.labels.font,
+                options.axises.y.label.caption,
+                options.axises.labels.font,
                 'right', 'top'
             );
 
@@ -335,50 +330,56 @@
         return new smartGraphAxisCreatorManager(
             this.getCtxManager(),
             'x',
-            new smartGraphPointManager(0, this.getCtxManager().getSettingsManager().getCenter().getY(), true)
+            new smartGraphPointManager(
+                0, this.getSettingsManager().getCenter().getY(), true)
+        );
+    };
+
+    smartGraphCreatorManager.prototype.getAxisXPositiveCreatorManager = function () {
+        return new smartGraphAxisCreatorManager(
+            this.getCtxManager(),
+            'x',
+            new smartGraphPointManager(
+                this.getSettingsManager().getWidth(),
+                this.getSettingsManager().getCenter().getY(), true)
         );
     };
 
     smartGraphCreatorManager.prototype.constructAxises = function () {
-        this.drawAxisesLabels().drawCenterTitle().getAxisXNegativeCreatorManager().construct();
-
-        new smartGraphAxisCreatorManager(
-            this.getCtxManager(),
-            'x',
-            new smartGraphPointManager(
-                this.getCtxManager().getSettingsManager().getWidth(),
-                this.getCtxManager().getSettingsManager().getCenter().getY(), true)
-        ).construct();
-
-        new smartGraphAxisCreatorManager(
-            this.getCtxManager(),
-            'y',
-            new smartGraphPointManager(this.getCtxManager().getSettingsManager().getCenter().getX(), 0, true)
-        ).construct();
-
+        this.drawAxisesLabels().drawCenterTitle()
+            .getAxisXNegativeCreatorManager().construct();
+        this.getAxisXPositiveCreatorManager().construct();
         new smartGraphAxisCreatorManager(
             this.getCtxManager(),
             'y',
             new smartGraphPointManager(
-                this.getCtxManager().getSettingsManager().getCenter().getX(),
-                this.getCtxManager().getSettingsManager().getHeight(), true)
+                this.getSettingsManager().getCenter().getX(), 0, true)
         ).construct();
-
+        new smartGraphAxisCreatorManager(
+            this.getCtxManager(),
+            'y',
+            new smartGraphPointManager(
+                this.getSettingsManager().getCenter().getX(),
+                this.getSettingsManager().getHeight(), true)
+        ).construct();
         return this;
     };
 
     smartGraphCreatorManager.prototype.drawCenterTitle = function () {
+        let options = this.getSettingsManager().getOptions();
+
         this.getCtxManager()
-            .setColor(this.getCtxManager().getSettingsManager().getOptions().axises.ticks.titles.color)
+            .setColor(options.axises.ticks.titles.color)
             .setStartPoint(
                 new smartGraphPointManager(
-                    -this.getCtxManager().getSettingsManager().getModifiedTickTitleDistance(),
-                    -1 * this.getCtxManager().getSettingsManager().getModifiedTickTitleDistance(), false)
+                    -this.getSettingsManager().getModifiedTickTitleDistance(),
+                    -1 * this.getSettingsManager().getModifiedTickTitleDistance(),
+                    false)
             )
             .drawText(
-                this.getCtxManager().getSettingsManager().getOptions().axises.ticks.titles.render(
+                options.axises.ticks.titles.render(
                     0, this.getAxisXNegativeCreatorManager()),
-                this.getCtxManager().getSettingsManager().getOptions().axises.ticks.titles.font,
+                options.axises.ticks.titles.font,
                 'right',
                 'top'
             );
@@ -386,139 +387,279 @@
         return this;
     };
 
-    smartGraphCreatorManager.prototype.drawPoint = function (o) {
-        o = $.extend(true, {}, this.getCtxManager().getSettingsManager().getOptions().point, o);
-
-        let d = o.size / (2 * this.getCtxManager().getSettingsManager().getScale());
-
-        this.getCtxManager()
-            .setColor(o.color)
-            .setStartPoint(new smartGraphPointManager(o.x - d, o.y, false))
-            .drawLine(new smartGraphPointManager(o.x + d, o.y, false), o.thickness, [])
-            .setStartPoint(new smartGraphPointManager(o.x, o.y - d, false))
-            .drawLine(new smartGraphPointManager(o.x, o.y + d, false), o.thickness, []);
-
-        return this.drawPointHintline(o).drawPointLabel(o);
+    smartGraphCreatorManager.prototype.drawFunction = function (props) {
+        new smartGraphDrawFunctionManager(this.getCtxManager(), props,
+            this.getAxisXNegativeCreatorManager().getLength(),
+            this.getAxisXPositiveCreatorManager().getLength()).draw();
+        return this;
     };
 
-    smartGraphCreatorManager.prototype.drawPointHintline = function (extendedO) {
-        if (extendedO.hintlines.show) {
+    smartGraphCreatorManager.prototype.drawPoint = function (props) {
+        new smartGraphDrawPointManager(this.getCtxManager(), props, false).draw();
+        return this;
+    };
+
+
+
+    var smartGraphDrawFunctionManager = function (
+        ctxManagerInstance, initProps, xNegativeAxisLength, xPositiveAxisLength) {
+        this._ctxManagerInstance = ctxManagerInstance;
+        this._actualExtendedProps = $.extend(
+            true, {},
+            this._ctxManagerInstance.getSettingsManager().getOptions().function,
+            initProps);
+
+        this.checkCompulsoryProps();
+
+        this._xNegativeAxisLength = xNegativeAxisLength;
+        this._xPositiveAxisLength = xPositiveAxisLength;
+
+        this._lastPointExtendedO = null;
+        this._drawn = false;
+
+        this._modifier = this._actualExtendedProps.modifier;
+
+        this._step = this._actualExtendedProps.step;
+        this._intervalStart = this._actualExtendedProps.interval[0];
+        this._intervalEnd = this._actualExtendedProps.interval[1];
+        this._relation = this._actualExtendedProps.relation;
+    };
+
+    smartGraphDrawFunctionManager.prototype.checkCompulsoryProps = function () {
+        if (typeof this._actualExtendedProps.relation !== 'function') {
+            smartGraphManager.throwTypeError('relation', 'options.data.functions[i]');
+        }
+
+        if (typeof this._actualExtendedProps.interval !== 'object'
+            || typeof this._actualExtendedProps.interval.length === 'undefined'
+        ) {
+            smartGraphManager.throwTypeError('interval', 'options.data.functions[i]');
+        }
+
+        if (this._actualExtendedProps.interval.length < 2) {
+            smartGraphManager.throwRangeError('interval', 'options.data.functions[i]');
+        }
+
+        if (typeof this._actualExtendedProps.interval[0] !== 'number'
+            || typeof this._actualExtendedProps.interval[1] !== 'number'
+        ) {
+            smartGraphManager.throwTypeError('interval', 'options.data.functions[i]');
+        }
+
+        if (this._actualExtendedProps.interval[0] >
+                this._actualExtendedProps.interval[1]) {
+            smartGraphManager.throwRangeError('interval', 'options.data.functions[i]');
+        }
+    }
+
+    smartGraphDrawFunctionManager.prototype.getCtxManager = function () {
+        return this._ctxManagerInstance;
+    };
+
+    smartGraphDrawFunctionManager.prototype.isDrawn = function () {
+        return this._drawn;
+    };
+
+    smartGraphDrawFunctionManager.prototype.getIntervalLowerBound = function () {
+        return Math.max(
+            -1 * this._xNegativeAxisLength
+            / this.getCtxManager().getSettingsManager().getScale(),
+            this._intervalStart
+        );
+    };
+
+    smartGraphDrawFunctionManager.prototype.getIntervalUpperBound = function () {
+        return Math.min(
+            this._xPositiveAxisLength
+            / this.getCtxManager().getSettingsManager().getScale(),
+            this._intervalEnd);
+    };
+
+    smartGraphDrawFunctionManager.prototype.draw = function () {
+        if (this.isDrawn()) {
+            return this;
+        }
+
+        let intervalUpperBound = this.getIntervalUpperBound();
+        let intervalLowerBound = this.getIntervalLowerBound();
+
+        for (let x = intervalLowerBound; x < intervalUpperBound; x += this._step) {
+            this.drawNextPoint(x);
+        }
+
+        this.drawNextPoint(intervalUpperBound);
+
+        this._drawn = true;
+        return this;
+    };
+
+    smartGraphDrawFunctionManager.prototype.drawNextPoint = function (x) {
+        let y = this._relation(x);
+
+        if (y === Infinity || y === -Infinity || y === NaN) {
+            this._lastPointExtendedO = null;
+            return this;
+        }
+
+        this._actualExtendedProps = $.extend(
+            true, {}, this._actualExtendedProps,
+            this._modifier(
+                x, y, this._lastPointExtendedO === null ? null : this._lastPointExtendedO.x,
+                this._lastPointExtendedO === null ? null : this._lastPointExtendedO.y,
+                this.getCtxManager().getSettingsManager())
+        );
+
+        let pointExtendedO = this.getExtendedPointO(x, y, this._actualExtendedProps);
+
+        this.drawConnectline(pointExtendedO);
+        new smartGraphDrawPointManager(this.getCtxManager(), pointExtendedO, true).draw();
+
+        this._lastPointExtendedO = pointExtendedO;
+        return this;
+    };
+
+    smartGraphDrawFunctionManager.prototype.drawConnectline = function (pointExtendedO) {
+        if (this._actualExtendedProps.connectlines.show && this._lastPointExtendedO !== null) {
             this.getCtxManager()
-                .setColor(extendedO.hintlines.color)
-                .setStartPoint(new smartGraphPointManager(extendedO.x, extendedO.y, false))
-                .drawLine(new smartGraphPointManager(0, extendedO.y, false),
-                    extendedO.hintlines.thickness, extendedO.hintlines.dash)
-                .drawLine(new smartGraphPointManager(extendedO.x, 0, false),
-                    extendedO.hintlines.thickness, extendedO.hintlines.dash)
+                .setStartPoint(new smartGraphPointManager(pointExtendedO.x, pointExtendedO.y, false))
+                .setColor(this._actualExtendedProps.connectlines.color)
+                .drawLine(new smartGraphPointManager(
+                    this._lastPointExtendedO.x, this._lastPointExtendedO.y, false),
+                    this._actualExtendedProps.connectlines.thickness,
+                    this._actualExtendedProps.connectlines.dash);
         }
 
         return this;
     };
 
-    smartGraphCreatorManager.prototype.drawPointLabel = function (extendedO) {
+    smartGraphDrawFunctionManager.prototype.getExtendedPointO = function (x, y) {
+        let options = this.getCtxManager().getSettingsManager().getOptions();
+
+        return {
+            x: x,
+            y: y,
+            size: this._actualExtendedProps.points.size === null ? options.point.size
+                : this._actualExtendedProps.points.size,
+            thickness: this._actualExtendedProps.points.thickness === null
+                ? options.point.thickness
+                : this._actualExtendedProps.points.thickness,
+            color: this._actualExtendedProps.points.color === null
+                ? options.point.color
+                : this._actualExtendedProps.points.color,
+            hintlines: {
+                show: this._actualExtendedProps.points.hintlines.show === null
+                    ? options.function.points.hintlines.show
+                    : this._actualExtendedProps.points.hintlines.show,
+                color: this._actualExtendedProps.points.hintlines.color === null
+                    ? options.function.points.hintlines.color
+                    : this._actualExtendedProps.points.hintlines.color,
+                thickness: this._actualExtendedProps.points.hintlines.thickness === null
+                    ? options.function.points.hintlines.show
+                    : this._actualExtendedProps.points.hintlines.thickness,
+                dash: this._actualExtendedProps.points.hintlines.dash === null
+                    ? options.function.points.hintlines.dash
+                    : this._actualExtendedProps.points.hintlines.dash
+            },
+            label: {
+                render: this._actualExtendedProps.points.labels.render === null
+                    ? options.point.label.render
+                    : this._actualExtendedProps.points.labels.render,
+                font: this._actualExtendedProps.points.labels.font === null
+                    ? options.point.label.font
+                    : this._actualExtendedProps.points.labels.font,
+                color: this._actualExtendedProps.points.labels.color === null
+                    ? options.point.label.color
+                    : this._actualExtendedProps.points.labels.color,
+                padding: this._actualExtendedProps.points.labels.padding === null
+                    ? options.point.label.padding
+                    : this._actualExtendedProps.points.labels.padding
+            }
+        };
+    };
+
+
+
+    var smartGraphDrawPointManager = function (
+            ctxManagerInstance, props, arePropsExtended) {
+        this._ctxManagerInstance = ctxManagerInstance;
+        this._extendedProps = arePropsExtended ? props : $.extend(
+            true, {},
+            this._ctxManagerInstance.getSettingsManager().getOptions().point, props);
+
+        if (typeof this._extendedProps.x !== 'number') {
+            smartGraphManager.throwTypeError('x', 'options.data.points[i]');
+        }
+
+        if (typeof this._extendedProps.y !== 'number') {
+            smartGraphManager.throwTypeError('y', 'options.data.points[i]');
+        }
+
+        this._drawn = false;
+    };
+
+    smartGraphDrawPointManager.prototype.getCtxManager = function () {
+        return this._ctxManagerInstance;
+    };
+
+    smartGraphDrawPointManager.prototype.isDrawn = function () {
+        return this._drawn;
+    };
+
+    smartGraphDrawPointManager.prototype.draw = function () {
+        if (this.isDrawn()) {
+            return this;
+        }
+
+        let d = this._extendedProps.size / (2 * this.getCtxManager().getSettingsManager().getScale());
+
         this.getCtxManager()
-            .setColor(extendedO.label.color)
+            .setColor(this._extendedProps.color)
+            .setStartPoint(new smartGraphPointManager(this._extendedProps.x - d, this._extendedProps.y, false))
+            .drawLine(new smartGraphPointManager(
+                this._extendedProps.x + d, this._extendedProps.y, false), this._extendedProps.thickness, [])
+            .setStartPoint(new smartGraphPointManager(this._extendedProps.x, this._extendedProps.y - d, false))
+            .drawLine(new smartGraphPointManager(
+                this._extendedProps.x, this._extendedProps.y + d, false), this._extendedProps.thickness, []);
+
+        this._drawn = true;
+        return this.drawHintline().drawLabel();
+    };
+
+    smartGraphDrawPointManager.prototype.drawHintline = function () {
+        if (this._extendedProps.hintlines.show) {
+            this.getCtxManager()
+                .setColor(this._extendedProps.hintlines.color)
+                .setStartPoint(new smartGraphPointManager(this._extendedProps.x, this._extendedProps.y, false))
+                .drawLine(new smartGraphPointManager(0, this._extendedProps.y, false),
+                    this._extendedProps.hintlines.thickness, this._extendedProps.hintlines.dash)
+                .drawLine(new smartGraphPointManager(this._extendedProps.x, 0, false),
+                    this._extendedProps.hintlines.thickness, this._extendedProps.hintlines.dash)
+        }
+
+        return this;
+    };
+
+    smartGraphDrawPointManager.prototype.drawLabel = function () {
+        this.getCtxManager()
+            .setColor(this._extendedProps.label.color)
             .setStartPoint(
                 new smartGraphPointManager(
-                    extendedO.x + (extendedO.x > 0 ? 1 : -1) * extendedO.label.padding /
+                    this._extendedProps.x + (this._extendedProps.x > 0 ? 1 : -1) * this._extendedProps.label.padding /
                     this.getCtxManager().getSettingsManager().getScale(),
-                    extendedO.y + (extendedO.y > 0 ? 1 : -1) * extendedO.label.padding /
+                    this._extendedProps.y + (this._extendedProps.y > 0 ? 1 : -1) * this._extendedProps.label.padding /
                     this.getCtxManager().getSettingsManager().getScale(),
                     false
                 )
             ).drawText(
-                extendedO.label.render(extendedO.x, extendedO.y, this.getCtxManager().getSettingsManager()),
-                extendedO.label.font,
-                extendedO.x < 0 ? 'right' : 'left',
-                extendedO.y < 0 ? 'top' : 'bottom'
+                this._extendedProps.label.render(this._extendedProps.x, this._extendedProps.y,
+                    this.getCtxManager().getSettingsManager()),
+                this._extendedProps.label.font,
+                this._extendedProps.x < 0 ? 'right' : 'left',
+                this._extendedProps.y < 0 ? 'top' : 'bottom'
             );
 
 
         return this;
-    };
-
-    smartGraphCreatorManager.prototype.drawFunction = function (o) {
-        o = $.extend(true, {}, this.getCtxManager().getSettingsManager().getOptions().function, o);
-
-        let prevPoint = null;
-
-        for (let x = o.interval[0]; x <= o.interval[1]; x += o.step) {
-            let y = o.relation(x);
-
-            if (y === Infinity || y === -Infinity || y === NaN) {
-                prevPoint = null;
-                continue;
-            }
-
-            o = $.extend(
-                true, {}, o,
-                o.modifier(
-                    x, y, prevPoint === null ? null : prevPoint.x,
-                    prevPoint === null ? null : prevPoint.y,
-                    this.getCtxManager().getSettingsManager())
-            );
-
-            let point = this.getExtendedPoint(x, y, o);
-
-            this.drawFunctionConnectline(o, prevPoint, point).drawPoint(point);
-            prevPoint = point;
-        }
-
-        return this;
-    };
-
-    smartGraphCreatorManager.prototype.drawFunctionConnectline = function (extendedO, prevPoint, point) {
-        if (extendedO.connectlines.show && prevPoint !== null) {
-            this.getCtxManager()
-                .setStartPoint(new smartGraphPointManager(point.x, point.y, false))
-                .setColor(extendedO.connectlines.color)
-                .drawLine(new smartGraphPointManager(prevPoint.x, prevPoint.y, false),
-                    extendedO.connectlines.thickness, extendedO.connectlines.dash);
-        }
-
-        return this;
-    };
-
-    smartGraphCreatorManager.prototype.getExtendedPoint = function (x, y, extendedO) {
-        return {
-            x: x,
-            y: y,
-            size: extendedO.points.size === null
-                ? this.getCtxManager().getSettingsManager().getOptions().point.size : extendedO.points.size,
-            thickness: extendedO.points.thickness === null
-                ? this.getCtxManager().getSettingsManager().getOptions().point.thickness
-                : extendedO.points.thickness,
-            color: extendedO.points.color === null
-                ? this.getCtxManager().getSettingsManager().getOptions().point.color : extendedO.points.color,
-            hintlines: {
-                show: extendedO.points.hintlines.show === null
-                    ? this.getCtxManager().getSettingsManager().getOptions().function.points.hintlines.show
-                    : extendedO.points.hintlines.show,
-                color: extendedO.points.hintlines.color === null
-                    ? this.getCtxManager().getSettingsManager().getOptions().function.points.hintlines.color
-                    : extendedO.points.hintlines.color,
-                thickness: extendedO.points.hintlines.thickness === null
-                    ? this.getCtxManager().getSettingsManager().getOptions().function.points.hintlines.show
-                    : extendedO.points.hintlines.thickness,
-                dash: extendedO.points.hintlines.dash === null
-                    ? this.getCtxManager().getSettingsManager().getOptions().function.points.hintlines.dash
-                    : extendedO.points.hintlines.dash
-            },
-            label: {
-                render: extendedO.points.labels.render === null
-                    ? this.getCtxManager().getSettingsManager().getOptions().point.label.render
-                    : extendedO.points.labels.render,
-                font: extendedO.points.labels.font === null
-                    ? this.getCtxManager().getSettingsManager().getOptions().point.label.font
-                    : extendedO.points.labels.font,
-                color: extendedO.points.labels.color === null
-                    ? this.getCtxManager().getSettingsManager().getOptions().point.label.color
-                    : extendedO.points.labels.color,
-                padding: extendedO.points.labels.padding === null
-                    ? this.getCtxManager().getSettingsManager().getOptions().point.label.padding
-                    : extendedO.points.labels.padding
-            }
-        };
     };
 
 
@@ -688,7 +829,7 @@
                 -1 * this.getSettingsManager().getModifiedTickSize(), this.getValue(), false);
         }
 
-        throw new Error("Invalid axis");
+        return new smartGraphPointManager(0, 0, true);
     };
 
     smartGraphTickManager.prototype.getLineEndPoint = function () {
@@ -702,7 +843,7 @@
                 this.getSettingsManager().getModifiedTickSize(), this.getValue(), false);
         }
 
-        throw new Error("Invalid axis");
+        return new smartGraphPointManager(0, 0, true);
     };
 
     smartGraphTickManager.prototype.getTitlePoint = function () {
@@ -716,7 +857,7 @@
                 -1 * this.getSettingsManager().getModifiedTickTitleDistance(), this.getValue(), false);
         }
 
-        throw new Error("Invalid axis");
+        return new smartGraphPointManager(0, 0, true);
     };
 
 
@@ -726,7 +867,6 @@
         this._x = x;
         this._y = y;
         this._real = real;
-        this.color = null;
     };
 
     smartGraphPointManager.prototype.getDistanceFrom = function (anotherPointManager) {
@@ -747,11 +887,6 @@
 
     smartGraphPointManager.prototype.isReal = function () {
         return this._real;
-    };
-
-    smartGraphPointManager.prototype.setReal = function (b) {
-        this._real = b;
-        return this;
     };
 
 
@@ -779,7 +914,8 @@
     smartGraphSettingsManager.prototype.setOptions = function (options, update) {
         let self = this;
 
-        self._options = $.extend(true, {}, update ? self._options : $.fn.smartGraph.defaults, options);
+        self._options = $.extend(true, {},
+            update ? self._options : $.fn.smartGraph.defaults, options);
 
         if (self._options.lines.color === null) {
             self._options.lines.color = self._options.color;
@@ -1016,7 +1152,6 @@
         this._scale *= $.fn.smartGraph.constants.scaleElementaryChange;
         return this;
     };
-
 
 
 

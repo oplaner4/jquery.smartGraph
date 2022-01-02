@@ -1,7 +1,7 @@
 # Jquery.smartGraph
 Free, easy to use, javascript library for generating beautiful vector graphs with many customizations.
 
-Current stable version: **1.2.0**
+Current stable version: **1.3.0**
 
 ### Features
 Jquery.smartGraph supports:
@@ -326,9 +326,9 @@ Check the option `axises.ticks.titles.render` above to see example of use.
 - Type: `Array[Object]`
 - Default: `[]`
 
-Points collection to be drawn into the graph. Specify compulsory `x` and `y` coord for each point.
+Points collection to be drawn into the graph. Specify compulsory `x` and `y` coordinates for each point.
 
-Additionaly you can replace general options of `point` listed below.
+Objects in the collection inherit (not specified) properties from the `options.point` object.
 
 Use methods `addData` and `updateData` to set them dynamically.
 
@@ -353,6 +353,16 @@ data: {
      ]
 }
 ```
+
+#### point.x
+- Type: `Number`
+
+It is compulsory.
+
+#### point.y
+- Type: `Number`
+
+It is compulsory.
 
 #### point.size
 - Type: `Number`
@@ -399,7 +409,7 @@ See the documentation here: https://www.w3schools.com/tags/canvas_font.asp
 #### point.label.render (x, y, settingsManager)
 - Returns: `String`
 
-You can also use defined Number prototype function `roundDigits (digits)` that rounds the number upto the specified decimal places.
+You can also use defined Number prototype function `roundDigits (digits)` which rounds the number upto the specified decimal places.
 
 ```javascript
 label: {
@@ -426,10 +436,9 @@ label: {
 - Type: `Array[Object]`
 - Default: `[]`
 
-Functions collection to be drawn into the graph. Specify compulsory `relation` and `interval` for each function.
+A collection of functions to be drawn into the graph. Specify compulsory `relation` and `interval` for each function.
 
-Objects inherit options from the `function` object.
-Additionaly you can replace general options  of  `function` listed below.
+Objects in the collection inherit (not specified) properties from the `options.function` object.
 
 Use methods `addData` and `updateData` to set them dynamically.
 
@@ -481,6 +490,16 @@ data: {
 }
 ```
 
+#### function.relation(x)
+- Returns: `Number`
+
+It is compulsory. This callback specifies the function's relation.
+
+#### function.interval
+- Type: `Array[Number]`
+
+It is compulsory and must be specified in format `[start, end]` where both endpoints are included (inclusive).
+
 #### function.step
 - Type: `Number`
 - Default: `null`
@@ -492,6 +511,8 @@ data: {
 You can use this callback to control the function course.
 
 Arguments `prevX` (the previous x from an interval) and `prevY` (the previous y) are `null` while rendering the first point. 
+
+This will not work for properties `relation`, `interval` and `step`.
 
 ```javascript
 'function': {
@@ -632,11 +653,16 @@ labels: {
 
 smartGraph library works with the following managers which are provided in callbacks as arguments. You can access their methods (getters and boolean queries) to find out useful information.
 
-**Attention:** Using of other manager's methods then listed below (etc. private setters), or modifying its private underline properties can cause unexpectable behaviour.
+**Attention:** Using of other manager's methods then listed below (etc. private setters), or modifying its private underline properties can cause an unexpectable behaviour.
 
 #### settingsManager
 - Type: `Object`
 - Methods: `getElement()`, `getScaledDistance()`, `getWidth()`, `getHeight()`, `getCenter()`, `getCanvas()`, `getScale()`  and `getDefaultScale()`
+
+#### pointManager
+- Type: `Object`
+- Methods: `getDistanceFrom(anotherPointManager)`,`equals(anotherPointManager)`, `getX()`, `getY()` and `isReal()`
+
 
 #### axisCreatorManager
 - Type: `Object`
@@ -715,15 +741,15 @@ $('#myElem').on('smartGraph.eventName', function (e, settingsManager) {
 }).smartGraph();
 ```
 
-#### click (settingsManager, x, y)
+#### click (settingsManager, pointManager)
 
 ```javascript
-$('#myElem').on('smartGraph.click', function (_e, settingsManager, x, y) {
+$('#myElem').on('smartGraph.click', function (_e, settingsManager, pointManager) {
     $(this).smartGraph('addData', {
         points: [
             {
-                x: x,
-                y: y,
+                x: pointManager.getX(),
+                y: pointManager.getY(),
                 hintlines: {
                     show: true
                 }
